@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useAccount } from "wagmi";
 import { motion } from "framer-motion";
-import { ExternalLink } from "lucide-react";
+import { showSuccess } from "@/lib/feedback";
 
 const API_BASE = "https://game.test-hub.xyz";
 
@@ -39,7 +39,7 @@ export default function PointsConversion() {
   const [input, setInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<{ pts: number; zkltcSent: string | number; explorerUrl?: string } | null>(null);
+  
 
   const fetchStats = useCallback(async () => {
     if (!address) return;
@@ -66,7 +66,6 @@ export default function PointsConversion() {
 
   const handleConvert = async () => {
     setError(null);
-    setSuccess(null);
     const pts = parseInt(input, 10);
     if (!Number.isInteger(pts) || pts < stats.minPoints || pts > stats.maxPoints) {
       setError(`Enter a whole number between ${stats.minPoints} and ${stats.maxPoints}.`);
@@ -83,7 +82,18 @@ export default function PointsConversion() {
       if (!r.ok || !data.success) {
         setError(data?.error || data?.message || "Conversion failed.");
       } else {
-        setSuccess({ pts, zkltcSent: data.zkltcSent, explorerUrl: data.explorerUrl });
+        showSuccess({
+          title: "CONVERSION COMPLETE",
+          subtitle: "POINTS SUCCESSFULLY CONVERTED",
+          rows: [
+            { label: "POINTS USED", value: `${pts} PTS` },
+            { label: "zkLTC RECEIVED", value: `${data.zkltcSent} zkLTC` },
+            { label: "TIER", value: tier.toUpperCase() },
+            ...(data.explorerUrl
+              ? [{ label: "EXPLORER", value: "VIEW ON EXPLORER →", href: data.explorerUrl }]
+              : []),
+          ],
+        });
         setInput("");
         fetchStats();
       }
@@ -147,24 +157,8 @@ export default function PointsConversion() {
                   {submitting ? "Converting..." : "Convert"}
                 </button>
 
-                {success && (
-                  <div className="mt-4 p-4 rounded-xl border border-white/10 bg-white/[0.03] text-sm text-white space-y-2">
-                    <div>✅ {success.pts} pts converted → {success.zkltcSent} zkLTC sent!</div>
-                    {success.explorerUrl && (
-                      <a
-                        href={success.explorerUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest underline decoration-white/30 underline-offset-4 hover:decoration-white"
-                      >
-                        View on Explorer <ExternalLink size={12} />
-                      </a>
-                    )}
-                  </div>
-                )}
-
                 {error && (
-                  <div className="mt-4 p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-sm text-red-300">
+                  <div className="mt-4 p-4 rounded-xl border border-brand-border bg-brand-surface text-sm text-brand-text-muted">
                     {error}
                   </div>
                 )}
