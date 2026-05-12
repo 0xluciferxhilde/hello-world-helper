@@ -4227,7 +4227,7 @@ export default function App() {
       { id: 'nfts', icon: Sparkles, title: 'NFTs', desc: 'Exclusive LiteForge assets' },
       { id: 'messenger', icon: MessageSquare, title: 'Messenger', desc: 'On-chain communication' },
       { id: 'quests', icon: ListChecks, title: 'Social Quests', desc: 'Complete tasks to earn' },
-      { id: 'games', icon: Gamepad2, title: 'Games', desc: 'Play using Gas Fuel', locked: true },
+      { id: 'games', icon: Gamepad2, title: 'Games', desc: 'Play using Gas Fuel' },
     ]
   };
 
