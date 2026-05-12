@@ -740,6 +740,39 @@
 
       <button class="start-btn" id="start-btn" style="opacity:0.5;pointer-events:none;">LOADING…</button>
       <div id="start-error" style="font-family:'Fredoka One',cursive;color:#ff6655;margin-top:14px;font-size:14px;text-align:center;max-width:340px;display:none;"></div>
+
+      <!-- ── WEEKLY LEADERBOARD ── -->
+      <div id="weekly-leaderboard" style="
+        position: absolute;
+        top: 50%;
+        right: 24px;
+        transform: translateY(-50%);
+        width: 300px;
+        max-height: 80vh;
+        overflow-y: auto;
+        background: #0a0a0a;
+        border: 1px solid #1f1f1f;
+        border-radius: 8px;
+        padding: 16px;
+        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #ddd;
+        z-index: 6;
+      ">
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #fff; margin-bottom: 4px;">WEEKLY LEADERBOARD</div>
+        <div id="wl-week" style="font-size: 11px; color: #666; margin-bottom: 12px;">—</div>
+        <div id="wl-table" style="font-size: 12px;">
+          <div style="color:#555;text-align:center;padding:12px 0;">Loading…</div>
+        </div>
+        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #1f1f1f; font-size: 10px; color: #666; line-height: 1.6;">
+          <div style="color:#888;margin-bottom:4px;">REWARDS</div>
+          <div>Rank 1: 1 zkLTC + 2,000 pts</div>
+          <div>Rank 2: 0.5 zkLTC + 1,000 pts</div>
+          <div>Rank 3: 0.3 zkLTC + 500 pts</div>
+          <div>Rank 4-10: 0.1 zkLTC + 200 pts</div>
+          <div>Rank 11-20: 0.001 zkLTC + 100 pts</div>
+          <div style="margin-top:6px;color:#555;">Top 20 rewarded every Sunday midnight IST</div>
+        </div>
+      </div>
     </div>
 
     <!-- ── GAME OVER SCREEN ── -->
