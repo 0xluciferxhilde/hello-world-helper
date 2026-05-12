@@ -15,7 +15,7 @@ const navItems = [
   { name: "NFTs", id: "nfts" },
   { name: "Messenger", id: "messenger" },
   { name: "Socials", id: "quests" },
-  { name: "Games", id: "games", locked: true },
+  { name: "Games", id: "games" },
 ];
 
 const EXPAND_SCROLL_THRESHOLD = 80;
