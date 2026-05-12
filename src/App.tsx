@@ -56,6 +56,7 @@ import { showSuccess, showError, showInfo, refreshPoints } from './lib/feedback'
 
 // --- Types ---
 type PageID = 'swap' | 'pool' | 'deploy' | 'points' | 'checkin' | 'nfts' | 'messenger' | 'quests' | 'games' | 'faucet';
+type MathSlashViewState = 'lobby' | 'playing' | 'gameover';
 
 interface NavItemProps {
   icon: any;
@@ -3238,173 +3239,58 @@ const QuestsPage = () => {
 };
 
 // --- Page: Games ---
-const GamesPage = () => {
+const GamesPage = ({ onMathSlashStateChange }: { onMathSlashStateChange: (state: MathSlashViewState) => void }) => {
   const { address, isConnected } = useAccount();
-  const [gf, setGf] = useState<bigint>(0n);
-  const [claiming, setClaiming] = useState(false);
-
-  const fetchGF = async () => {
-    if (!address) return;
-    try {
-      const { readGF } = await import('./lib/litdex-core-logic');
-      const val = await readGF(address);
-      setGf(val);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const [iframeKey, setIframeKey] = useState(0);
 
   useEffect(() => {
-    if (isConnected && address) {
-      fetchGF();
+    onMathSlashStateChange('lobby');
+
+    if (!isConnected) {
+      return () => onMathSlashStateChange('lobby');
     }
-  }, [isConnected, address]);
 
-  const handleClaimGF = async () => {
-    setClaiming(true);
-    try {
-      const { claimGF } = await import('./lib/litdex-core-logic');
-      await claimGF();
-      showSuccess({ title: "GAMING FUEL CLAIMED", subtitle: "PROTOCOL VERIFICATION COMPLETE", rows: [{ label: "STATUS", value: "FUEL ADDED" }] });
-      try {
-        if (address) addNotif(address, {
-          type: "gf",
-          title: "Game Fuel Claimed",
-          message: `Game Fuel added to your balance`,
-        });
-      } catch { /* ignore */ }
-      fetchGF();
-    } catch (err) {
-      showError(errMsg(err));
-    } finally {
-      setClaiming(false);
-    }
-  };
-
-  const handleStartGame = async (gameId: string) => {
-     try {
-       const { startGame } = await import('./lib/litdex-core-logic');
-       await startGame(gameId);
-       showInfo("Game started! Redirecting...");
-       // Here you would normally redirect to the game canvas/route
-     } catch (err: any) {
-       showError(err.message || "Failed to start game");
-     }
-  };
-
-  const [playing, setPlaying] = useState(false);
-
-  useEffect(() => {
     const onMsg = (e: MessageEvent) => {
-      if (e.data && (e.data as any).type === 'litdex-exit-game') setPlaying(false);
-    };
-    window.addEventListener('message', onMsg);
-    return () => window.removeEventListener('message', onMsg);
-  }, []);
+      const data = e.data as { type?: string; state?: MathSlashViewState } | null;
+      if (!data || typeof data !== 'object') return;
 
-  if (playing) {
+      if (data.type === 'litdex-mathslash-state' && data.state) {
+        onMathSlashStateChange(data.state);
+      }
+
+      if (data.type === 'litdex-exit-game') {
+        onMathSlashStateChange('lobby');
+        setIframeKey((current) => current + 1);
+      }
+    };
+
+    window.addEventListener('message', onMsg);
+    return () => {
+      window.removeEventListener('message', onMsg);
+      onMathSlashStateChange('lobby');
+    };
+  }, [isConnected, onMathSlashStateChange]);
+
+  if (!isConnected || !address) {
     return (
-      <div className="fixed inset-0 z-[100] bg-black">
-        <iframe
-          src="/games/math-slash.html"
-          className="w-full h-full border-0"
-          title="Math Slash"
-          allow="autoplay; fullscreen"
-        />
-      </div>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+        <Card className="w-full max-w-xl border-white/10 bg-black/70 px-8 py-10 text-center backdrop-blur-2xl">
+          <p className="text-base text-white/80">Connect your wallet using the button in the top navbar to play.</p>
+        </Card>
+      </motion.div>
     );
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-20 max-w-3xl mx-auto px-4">
-      <Card className="p-12 bg-[#0a0a0a] border-[#1a1a1a] backdrop-blur-3xl shadow-2xl text-center relative overflow-hidden">
-        <div className="relative z-10 flex flex-col items-center gap-6">
-          <div className="w-24 h-24 rounded-2xl bg-black border border-[#1f1f1f] flex items-center justify-center text-white">
-            <Gamepad2 size={44} strokeWidth={1.5} />
-          </div>
-          <h1 className="text-4xl font-black tracking-tighter text-white">MATH SLASH</h1>
-          <p className="text-[#555] max-w-md text-sm leading-relaxed font-mono">
-            Slash the fruits that solve the equation. Burn points, earn zkLTC rewards.
-          </p>
-          <button
-            onClick={() => setPlaying(true)}
-            className="mt-4 px-10 py-4 bg-white text-black rounded-xl font-bold tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all font-mono"
-          >
-            PLAY NOW
-          </button>
-        </div>
-      </Card>
-    </motion.div>
-  );
-
-  // eslint-disable-next-line no-unreachable
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-12 max-w-6xl mx-auto px-4">
-      <Card className="p-10 mb-12 flex flex-col md:flex-row items-center justify-between gap-12 bg-black/40 text-center md:text-left border-white/5 backdrop-blur-xl group overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/[0.01] rounded-full blur-3xl -mr-48 -mt-48 transition-all group-hover:bg-white/[0.03]" />
-        
-        <div className="flex-1 relative z-10">
-          <h1 className="text-4xl font-bold mb-4 tracking-tighter text-white">GAMING FUEL (GF)</h1>
-          <p className="text-brand-text-muted mb-8 max-w-md">Every game on LitDeX consumes GF. Claim your daily allowance to climb the leaderboard.</p>
-          <div className="space-y-3 mb-8">
-             <div className="flex justify-between items-end">
-                <span className="text-[10px] font-bold text-white uppercase tracking-widest">Available Balance</span>
-                <span className="text-xs font-mono">{gf.toString()} GF</span>
-             </div>
-             <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${Math.min(100, Number(gf) / 5)}%` }}
-                  className="h-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.5)]" 
-                />
-             </div>
-          </div>
-          <button 
-            onClick={handleClaimGF}
-            disabled={!isConnected || claiming}
-            className="px-10 py-4 bg-white text-black rounded-xl font-bold hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-[0_0_40px_rgba(255,255,255,0.1)] disabled:opacity-50 mx-auto md:mx-0"
-          >
-            {claiming ? "Claiming..." : "Claim Daily GF"} <Plus size={16} />
-          </button>
-        </div>
-        <div className="w-64 h-64 rounded-full border border-white/5 flex items-center justify-center relative bg-white/[0.02] shadow-inner group-hover:rotate-12 transition-all duration-700">
-           <Gamepad2 size={100} className="text-white/20" />
-        </div>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <Card className="overflow-hidden group h-[450px] flex flex-col bg-black/40 border-white/5 hover:border-white/20 transition-all">
-          <div className="h-48 bg-white/5 flex items-center justify-center text-white/20 group-hover:text-white transition-colors">
-            <Gamepad2 size={80} />
-          </div>
-          <div className="p-8 flex-1 flex flex-col">
-            <h3 className="font-bold text-2xl mb-2 text-white">Retro-Forge</h3>
-            <p className="text-sm text-brand-text-muted mb-8 leading-relaxed">Dodge gas spikes and collect shards in this high-speed endless runner. Earn points with every meter.</p>
-            <button 
-              onClick={() => handleStartGame('retro-forge')}
-              className="mt-auto w-full py-4 bg-white/5 border border-white/10 rounded-xl font-bold text-xs uppercase tracking-widest text-brand-text-muted group-hover:bg-white group-hover:text-black group-hover:border-white transition-all shadow-xl shadow-transparent group-hover:shadow-white/5"
-            >
-              Play (50 GF)
-            </button>
-          </div>
-        </Card>
-        
-        {[1, 2].map(i => (
-          <Card key={i} className="overflow-hidden h-[450px] relative grayscale opacity-40 bg-black/40 border-white/5">
-             <div className="h-48 bg-white/[0.02] border-b border-white/5 flex items-center justify-center">
-                <span className="text-5xl opacity-20">🔒</span>
-             </div>
-             <div className="p-8">
-                <h3 className="font-bold text-2xl mb-2 text-white">Coming Soon</h3>
-                <p className="text-sm text-brand-text-muted">A new gaming experience is being forged in the lab.</p>
-             </div>
-             <div className="absolute inset-x-8 bottom-8 text-center border-t border-white/5 pt-8">
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/30">Locked Expansion</p>
-             </div>
-          </Card>
-        ))}
-      </div>
-    </motion.div>
+    <div className="fixed inset-0 z-[40] bg-black">
+      <iframe
+        key={`${address}-${iframeKey}`}
+        src={`/games/math-slash.html?wallet=${encodeURIComponent(address)}`}
+        className="h-full w-full border-0"
+        title="Math Slash"
+        allow="autoplay; fullscreen"
+      />
+    </div>
   );
 };
 
@@ -4092,6 +3978,7 @@ export default function App() {
   const [showFloatingTools, setShowFloatingTools] = useState(false);
   const footerRef = useRef<HTMLElement | null>(null);
   const [footerHeight, setFooterHeight] = useState(0);
+  const [mathSlashViewState, setMathSlashViewState] = useState<MathSlashViewState>('lobby');
 
   useEffect(() => {
     const measure = () => {
@@ -4209,11 +4096,13 @@ export default function App() {
       case 'nfts': return <NFTsPage />;
       case 'messenger': return <MessengerPage />;
       case 'quests': return <QuestsPage />;
-      case 'games': return <GamesPage />;
+      case 'games': return <GamesPage onMathSlashStateChange={setMathSlashViewState} />;
       case 'faucet': return <FaucetPage />;
       default: return <SwapPage />;
     }
   };
+
+  const isMathSlashPlaying = activePage === 'games' && mathSlashViewState === 'playing';
 
   const navGroups = {
     litdex: [
@@ -4233,43 +4122,44 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text-primary selection:bg-white/30 flex flex-col overflow-x-hidden w-full max-w-full">
-      {/* Top Header Background & Border */}
-      <div className="fixed top-0 left-0 right-0 z-[49] h-16 sm:h-20 bg-black/40 dark:bg-zinc-900/60 backdrop-blur-3xl border-b border-white/5 pointer-events-none" />
+      {!isMathSlashPlaying && (
+        <>
+          <div className="fixed top-0 left-0 right-0 z-[49] h-16 sm:h-20 bg-black/40 dark:bg-zinc-900/60 backdrop-blur-3xl border-b border-white/5 pointer-events-none" />
 
-      {/* Top Left Logo & Theme Toggle */}
-      <div className="fixed top-3 left-3 sm:top-4 sm:left-6 z-[60] flex items-center gap-2 sm:gap-5">
-        <div className="flex items-center gap-4 group cursor-pointer" onClick={() => setActivePage('swap')}>
-          <div className="relative">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 bg-white rounded-xl flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.2)] group-hover:shadow-[0_0_60px_rgba(255,255,255,0.4)] transition-all duration-700 group-hover:rotate-6">
-              <LogoLD size={20} className="sm:[font-size:24px]" />
+          <div className="fixed top-3 left-3 sm:top-4 sm:left-6 z-[60] flex items-center gap-2 sm:gap-5">
+            <div className="flex items-center gap-4 group cursor-pointer" onClick={() => setActivePage('swap')}>
+              <div className="relative">
+                <div className="w-9 h-9 sm:w-11 sm:h-11 bg-white rounded-xl flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.2)] group-hover:shadow-[0_0_60px_rgba(255,255,255,0.4)] transition-all duration-700 group-hover:rotate-6">
+                  <LogoLD size={20} className="sm:[font-size:24px]" />
+                </div>
+                <div className="absolute -inset-2 bg-white/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              </div>
+              <span className="hidden sm:inline text-2xl font-black italic tracking-tighter text-white dark:text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                LitDeX
+              </span>
             </div>
-            <div className="absolute -inset-2 bg-white/10 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          </div>
-          <span className="hidden sm:inline text-2xl font-black italic tracking-tighter text-white dark:text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-            LitDeX
-          </span>
-        </div>
-        
-        <div className="hidden sm:block h-6 w-px bg-white/10 ml-1" />
+            
+            <div className="hidden sm:block h-6 w-px bg-white/10 ml-1" />
 
-        {/* Theme Toggle Switch */}
-        <button 
-          onClick={toggleTheme}
-          className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all backdrop-blur-3xl group"
-          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-        >
-          {theme === 'dark' ? (
-            <Moon size={18} className="transition-transform group-hover:rotate-12" />
-          ) : (
-            <Sun size={18} className="transition-transform group-hover:rotate-90" />
-          )}
-        </button>
-      </div>
+            <button 
+              onClick={toggleTheme}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all backdrop-blur-3xl group"
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? (
+                <Moon size={18} className="transition-transform group-hover:rotate-12" />
+              ) : (
+                <Sun size={18} className="transition-transform group-hover:rotate-90" />
+              )}
+            </button>
+          </div>
+        </>
+      )}
 
       <div className="flex-1 relative flex flex-col">
         {/* Floating Tools Layout Fix - Only show on scroll */}
         <AnimatePresence>
-          {showFloatingTools && (
+          {showFloatingTools && !isMathSlashPlaying && (
             <motion.div 
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
@@ -4318,42 +4208,45 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* Top Right Tools (desktop only — mobile uses hamburger menu) */}
-        <div className="hidden md:flex fixed top-3 right-3 sm:top-4 sm:right-6 z-[60] flex-col items-end" style={{ transform: 'scale(1.0)', transformOrigin: 'top right' }}>
-          <ConnectButton.Custom>
-            {({ account, chain, openConnectModal, openAccountModal, mounted }) => {
-              const connected = mounted && account && chain;
-              return (
-                <div className="flex items-center gap-2 sm:gap-3">
-                  {connected && <div className="hidden lg:block"><WalletBalanceDisplay /></div>}
-                  <button
-                    onClick={connected ? openAccountModal : openConnectModal}
-                    className={cn(
-                      "flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl transition-all text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] h-9 sm:h-10 wallet-connect-btn",
-                      connected
-                        ? "bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(255,255,255,0.2)]"
-                        : "bg-white text-black hover:bg-white/90 shadow-[0_0_30px_rgba(255,255,255,0.15)]"
-                    )}
-                  >
-                    {connected ? (
-                       <>
-                         <span className="opacity-80 max-w-[80px] truncate">{account.displayName}</span>
-                         <ChevronDown size={14} className="opacity-40" />
-                       </>
-                    ) : (
-                      <><Wallet size={12} /> Connect</>
-                    )}
-                  </button>
-                </div>
-              );
-            }}
-          </ConnectButton.Custom>
-        </div>
+        {!isMathSlashPlaying && (
+          <>
+            <div className="hidden md:flex fixed top-3 right-3 sm:top-4 sm:right-6 z-[60] flex-col items-end" style={{ transform: 'scale(1.0)', transformOrigin: 'top right' }}>
+              <ConnectButton.Custom>
+                {({ account, chain, openConnectModal, openAccountModal, mounted }) => {
+                  const connected = mounted && account && chain;
+                  return (
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      {connected && <div className="hidden lg:block"><WalletBalanceDisplay /></div>}
+                      <button
+                        onClick={connected ? openAccountModal : openConnectModal}
+                        className={cn(
+                          "flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl transition-all text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] h-9 sm:h-10 wallet-connect-btn",
+                          connected
+                            ? "bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(255,255,255,0.2)]"
+                            : "bg-white text-black hover:bg-white/90 shadow-[0_0_30px_rgba(255,255,255,0.15)]"
+                        )}
+                      >
+                        {connected ? (
+                           <>
+                             <span className="opacity-80 max-w-[80px] truncate">{account.displayName}</span>
+                             <ChevronDown size={14} className="opacity-40" />
+                           </>
+                        ) : (
+                          <><Wallet size={12} /> Connect</>
+                        )}
+                      </button>
+                    </div>
+                  );
+                }}
+              </ConnectButton.Custom>
+            </div>
 
-        <AnimatedNavFramer 
-          onPageChange={(page) => handlePageChange(page as PageID)} 
-          activePage={activePage === 'checkin' ? previousPage : activePage}
-        />
+            <AnimatedNavFramer 
+              onPageChange={(page) => handlePageChange(page as PageID)} 
+              activePage={activePage === 'checkin' ? previousPage : activePage}
+            />
+          </>
+        )}
 
         {/* Main Content */}
         <main className={cn(
