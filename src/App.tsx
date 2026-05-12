@@ -4159,7 +4159,7 @@ export default function App() {
       <div className="flex-1 relative flex flex-col">
         {/* Floating Tools Layout Fix - Only show on scroll */}
         <AnimatePresence>
-          {showFloatingTools && (
+          {showFloatingTools && !isMathSlashPlaying && (
             <motion.div 
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
@@ -4208,42 +4208,45 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* Top Right Tools (desktop only — mobile uses hamburger menu) */}
-        <div className="hidden md:flex fixed top-3 right-3 sm:top-4 sm:right-6 z-[60] flex-col items-end" style={{ transform: 'scale(1.0)', transformOrigin: 'top right' }}>
-          <ConnectButton.Custom>
-            {({ account, chain, openConnectModal, openAccountModal, mounted }) => {
-              const connected = mounted && account && chain;
-              return (
-                <div className="flex items-center gap-2 sm:gap-3">
-                  {connected && <div className="hidden lg:block"><WalletBalanceDisplay /></div>}
-                  <button
-                    onClick={connected ? openAccountModal : openConnectModal}
-                    className={cn(
-                      "flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl transition-all text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] h-9 sm:h-10 wallet-connect-btn",
-                      connected
-                        ? "bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(255,255,255,0.2)]"
-                        : "bg-white text-black hover:bg-white/90 shadow-[0_0_30px_rgba(255,255,255,0.15)]"
-                    )}
-                  >
-                    {connected ? (
-                       <>
-                         <span className="opacity-80 max-w-[80px] truncate">{account.displayName}</span>
-                         <ChevronDown size={14} className="opacity-40" />
-                       </>
-                    ) : (
-                      <><Wallet size={12} /> Connect</>
-                    )}
-                  </button>
-                </div>
-              );
-            }}
-          </ConnectButton.Custom>
-        </div>
+        {!isMathSlashPlaying && (
+          <>
+            <div className="hidden md:flex fixed top-3 right-3 sm:top-4 sm:right-6 z-[60] flex-col items-end" style={{ transform: 'scale(1.0)', transformOrigin: 'top right' }}>
+              <ConnectButton.Custom>
+                {({ account, chain, openConnectModal, openAccountModal, mounted }) => {
+                  const connected = mounted && account && chain;
+                  return (
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      {connected && <div className="hidden lg:block"><WalletBalanceDisplay /></div>}
+                      <button
+                        onClick={connected ? openAccountModal : openConnectModal}
+                        className={cn(
+                          "flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl transition-all text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] h-9 sm:h-10 wallet-connect-btn",
+                          connected
+                            ? "bg-white text-black hover:bg-white/90 shadow-[0_0_40px_rgba(255,255,255,0.2)]"
+                            : "bg-white text-black hover:bg-white/90 shadow-[0_0_30px_rgba(255,255,255,0.15)]"
+                        )}
+                      >
+                        {connected ? (
+                           <>
+                             <span className="opacity-80 max-w-[80px] truncate">{account.displayName}</span>
+                             <ChevronDown size={14} className="opacity-40" />
+                           </>
+                        ) : (
+                          <><Wallet size={12} /> Connect</>
+                        )}
+                      </button>
+                    </div>
+                  );
+                }}
+              </ConnectButton.Custom>
+            </div>
 
-        <AnimatedNavFramer 
-          onPageChange={(page) => handlePageChange(page as PageID)} 
-          activePage={activePage === 'checkin' ? previousPage : activePage}
-        />
+            <AnimatedNavFramer 
+              onPageChange={(page) => handlePageChange(page as PageID)} 
+              activePage={activePage === 'checkin' ? previousPage : activePage}
+            />
+          </>
+        )}
 
         {/* Main Content */}
         <main className={cn(
