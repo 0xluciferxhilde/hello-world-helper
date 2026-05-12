@@ -3292,19 +3292,46 @@ const GamesPage = () => {
      }
   };
 
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (e.data && (e.data as any).type === 'litdex-exit-game') setPlaying(false);
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  if (playing) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black">
+        <iframe
+          src="/games/math-slash.html"
+          className="w-full h-full border-0"
+          title="Math Slash"
+          allow="autoplay; fullscreen"
+        />
+      </div>
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-20 max-w-3xl mx-auto px-4">
-      <Card className="p-12 bg-black/40 border-white/5 backdrop-blur-3xl shadow-2xl text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05),transparent_60%)] pointer-events-none" />
+      <Card className="p-12 bg-[#0a0a0a] border-[#1a1a1a] backdrop-blur-3xl shadow-2xl text-center relative overflow-hidden">
         <div className="relative z-10 flex flex-col items-center gap-6">
-          <div className="w-24 h-24 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center text-white shadow-[0_0_40px_rgba(255,255,255,0.08)]">
-            <Lock size={44} strokeWidth={1.5} />
+          <div className="w-24 h-24 rounded-2xl bg-black border border-[#1f1f1f] flex items-center justify-center text-white">
+            <Gamepad2 size={44} strokeWidth={1.5} />
           </div>
-          <h1 className="text-4xl font-black tracking-tighter text-white">Games Locked</h1>
-          <p className="text-brand-text-muted max-w-md text-sm leading-relaxed">
-            The gaming arena is being forged. Stay tuned — Gaming Fuel and rewards will go live soon.
+          <h1 className="text-4xl font-black tracking-tighter text-white">MATH SLASH</h1>
+          <p className="text-[#555] max-w-md text-sm leading-relaxed font-mono">
+            Slash the fruits that solve the equation. Burn points, earn zkLTC rewards.
           </p>
-          <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/30 mt-2">Coming Soon</div>
+          <button
+            onClick={() => setPlaying(true)}
+            className="mt-4 px-10 py-4 bg-white text-black rounded-xl font-bold tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all font-mono"
+          >
+            PLAY NOW
+          </button>
         </div>
       </Card>
     </motion.div>
@@ -4200,7 +4227,7 @@ export default function App() {
       { id: 'nfts', icon: Sparkles, title: 'NFTs', desc: 'Exclusive LiteForge assets' },
       { id: 'messenger', icon: MessageSquare, title: 'Messenger', desc: 'On-chain communication' },
       { id: 'quests', icon: ListChecks, title: 'Social Quests', desc: 'Complete tasks to earn' },
-      { id: 'games', icon: Gamepad2, title: 'Games', desc: 'Play using Gas Fuel', locked: true },
+      { id: 'games', icon: Gamepad2, title: 'Games', desc: 'Play using Gas Fuel' },
     ]
   };
 

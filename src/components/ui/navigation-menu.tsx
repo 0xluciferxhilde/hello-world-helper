@@ -7,7 +7,7 @@ import { Navigation, Menu, X, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
-const navItems = [
+const navItems: { name: string; id: string; locked?: boolean }[] = [
   { name: "Swap", id: "swap" },
   { name: "Pool", id: "pool" },
   { name: "Deploy", id: "deploy" },
@@ -15,7 +15,7 @@ const navItems = [
   { name: "NFTs", id: "nfts" },
   { name: "Messenger", id: "messenger" },
   { name: "Socials", id: "quests" },
-  { name: "Games", id: "games", locked: true },
+  { name: "Games", id: "games" },
 ];
 
 const EXPAND_SCROLL_THRESHOLD = 80;
