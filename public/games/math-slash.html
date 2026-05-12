@@ -1,0 +1,1948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Math Slash — 3D</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Fredoka+One&family=Permanent+Marker&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { 
+    width: 100%; height: 100%; overflow: hidden; 
+    background: #0a0a0a; 
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  #game-container {
+    position: relative;
+    width: 100%; height: 100%;
+  }
+
+  #three-canvas {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+  }
+
+  #blade-canvas {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  #ui-overlay {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 3;
+    pointer-events: none;
+    font-family: 'Bangers', cursive;
+  }
+
+  #input-layer {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 4;
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='b' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23e0e8f0'/%3E%3Cstop offset='100%25' stop-color='%23a0aab8'/%3E%3C/linearGradient%3E%3ClinearGradient id='h' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%23654321'/%3E%3Cstop offset='50%25' stop-color='%238B6914'/%3E%3Cstop offset='100%25' stop-color='%23654321'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg transform='rotate(-45 16 16)'%3E%3Crect x='14' y='2' width='4' height='16' rx='1' fill='url(%23b)' stroke='%23889' stroke-width='0.5'/%3E%3Cline x1='16' y1='3' x2='16' y2='17' stroke='%23fff' stroke-width='0.5' opacity='0.5'/%3E%3Crect x='13' y='17' width='6' height='2' rx='0.5' fill='%23999'/%3E%3Crect x='12.5' y='19' width='7' height='8' rx='1.5' fill='url(%23h)' stroke='%23543210' stroke-width='0.5'/%3E%3Cline x1='14' y1='20' x2='14' y2='26' stroke='%23765432' stroke-width='0.4' opacity='0.6'/%3E%3Cline x1='18' y1='20' x2='18' y2='26' stroke='%23765432' stroke-width='0.4' opacity='0.6'/%3E%3Ccircle cx='16' cy='18.5' r='0.8' fill='%23bbb'/%3E%3C/g%3E%3C/svg%3E") 2 2, crosshair;
+  }
+
+  /* ── TARGET NUMBER DISPLAY ── */
+  .target-area {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    background: linear-gradient(180deg, rgba(20,40,80,0.92) 0%, rgba(10,20,50,0.85) 80%, transparent 100%);
+    padding: 10px 40px 22px;
+    border-radius: 0 0 28px 28px;
+    border: 2px solid rgba(100,180,255,0.25);
+    border-top: none;
+    box-shadow: 0 4px 30px rgba(60,120,255,0.3), inset 0 0 30px rgba(60,120,255,0.08);
+    min-width: 220px;
+    animation: bannerGlow 2s ease-in-out infinite;
+  }
+  @keyframes bannerGlow {
+    0%, 100% { box-shadow: 0 4px 30px rgba(60,120,255,0.3), inset 0 0 30px rgba(60,120,255,0.08); }
+    50% { box-shadow: 0 4px 45px rgba(80,150,255,0.5), inset 0 0 40px rgba(80,150,255,0.12); }
+  }
+
+  .target-label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 15px;
+    color: rgba(150,200,255,0.8);
+    letter-spacing: 5px;
+    text-transform: uppercase;
+  }
+
+  .target-number {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(58px, 12vw, 92px);
+    color: #fff;
+    text-shadow: 
+      0 0 25px rgba(100,200,255,0.9),
+      0 0 60px rgba(80,150,255,0.5),
+      0 4px 8px rgba(0,0,0,0.8);
+    line-height: 1;
+    transition: transform 0.2s, color 0.2s;
+    animation: numberPulse 2.5s ease-in-out infinite;
+  }
+  @keyframes numberPulse {
+    0%, 100% { text-shadow: 0 0 25px rgba(100,200,255,0.9), 0 0 60px rgba(80,150,255,0.5), 0 4px 8px rgba(0,0,0,0.8); }
+    50% { text-shadow: 0 0 35px rgba(120,220,255,1), 0 0 80px rgba(100,180,255,0.7), 0 4px 8px rgba(0,0,0,0.8); }
+  }
+
+  .target-number.correct-flash {
+    animation: targetFlash 0.4s ease-out;
+  }
+  @keyframes targetFlash {
+    0% { transform: scale(1.35); color: #44ff88; text-shadow: 0 0 40px rgba(68,255,136,0.9); }
+    100% { transform: scale(1); color: #fff; }
+  }
+
+  .target-number.wrong-flash {
+    animation: targetShake 0.4s ease-out;
+  }
+  @keyframes targetShake {
+    0%, 100% { transform: translateX(0); color: #fff; }
+    20% { transform: translateX(-14px); color: #ff4444; }
+    40% { transform: translateX(14px); color: #ff4444; }
+    60% { transform: translateX(-8px); color: #ff6666; }
+    80% { transform: translateX(8px); }
+  }
+
+  /* ── TUTORIAL OVERLAY ── */
+  .tutorial-overlay {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.88);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    pointer-events: auto;
+    z-index: 10;
+    transition: opacity 0.5s;
+    padding: 20px;
+  }
+  .tutorial-overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .tut-step {
+    text-align: center;
+    max-width: 400px;
+  }
+
+  .tut-target-demo {
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px;
+    color: rgba(150,200,255,0.8);
+    letter-spacing: 3px;
+    margin-bottom: 4px;
+  }
+
+  .tut-target-num {
+    font-family: 'Fredoka One', cursive;
+    font-size: 72px;
+    color: #fff;
+    text-shadow: 0 0 25px rgba(100,200,255,0.9), 0 0 60px rgba(80,150,255,0.5);
+    line-height: 1;
+    margin-bottom: 20px;
+  }
+
+  .tut-examples {
+    display: flex; gap: 20px; justify-content: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .tut-fruit {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 6px;
+  }
+
+  .tut-fruit-circle {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .tut-fruit-circle.good {
+    background: linear-gradient(135deg, #22884a, #2d7a2d);
+    box-shadow: 0 0 15px rgba(68,255,136,0.4);
+    border: 2px solid rgba(68,255,136,0.5);
+  }
+  .tut-fruit-circle.bad {
+    background: linear-gradient(135deg, #882222, #993333);
+    box-shadow: 0 0 15px rgba(255,60,60,0.3);
+    border: 2px solid rgba(255,60,60,0.4);
+  }
+
+  .tut-label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+  .tut-label.good { color: #44ff88; }
+  .tut-label.bad { color: #ff5555; }
+
+  .tut-arrow {
+    font-size: 36px;
+    margin-bottom: 12px;
+  }
+
+  .tut-hint {
+    font-family: 'Fredoka One', cursive;
+    font-size: 15px;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+
+  .tut-btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 24px;
+    color: #fff;
+    background: linear-gradient(135deg, #44bb66, #22aa44);
+    border: none;
+    padding: 12px 44px;
+    border-radius: 50px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    box-shadow: 0 4px 20px rgba(60,200,100,0.4);
+    transition: transform 0.15s;
+  }
+  .tut-btn:hover { transform: scale(1.06); }
+  .tut-btn:active { transform: scale(0.97); }
+
+  /* ── HUD ── */
+  .hud {
+    position: absolute; top: 20px; left: 0; right: 0;
+    display: flex; justify-content: space-between;
+    padding: 0 24px;
+  }
+
+  .hud-left { display: flex; flex-direction: column; }
+
+  .hud-score {
+    color: #fff;
+    font-size: 42px;
+    text-shadow: 0 0 10px rgba(255,200,0,0.8), 0 2px 4px rgba(0,0,0,0.8);
+    letter-spacing: 2px;
+  }
+
+  .hud-streak {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: #ffcc00;
+    text-shadow: 0 0 8px rgba(255,200,0,0.5);
+    opacity: 0;
+    transition: opacity 0.2s;
+    margin-top: -4px;
+  }
+
+  .hud-level {
+    font-family: 'Fredoka One', cursive;
+    font-size: 16px;
+    color: rgba(150,200,255,0.7);
+    margin-top: 4px;
+    letter-spacing: 2px;
+  }
+
+  .hud-lives {
+    display: flex; gap: 6px; align-items: center;
+    flex-direction: row-reverse;
+  }
+
+  .heart {
+    font-size: 28px;
+    filter: drop-shadow(0 0 4px rgba(255,50,80,0.6));
+    transition: transform 0.2s, opacity 0.3s;
+  }
+  .heart.lost {
+    opacity: 0.2;
+    transform: scale(0.8);
+    filter: none;
+  }
+
+  .hud-best {
+    position: absolute; top: 56px; right: 24px;
+    color: rgba(255,255,255,0.4);
+    font-size: 16px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+
+  .hud-progress {
+    position: absolute; bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 6px; align-items: center;
+  }
+
+  .progress-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
+  }
+  .progress-dot.filled {
+    background: #44ff88;
+    box-shadow: 0 0 8px rgba(68,255,136,0.6);
+    transform: scale(1.2);
+  }
+  .progress-dot.current {
+    background: rgba(100,200,255,0.6);
+    box-shadow: 0 0 8px rgba(100,200,255,0.4);
+    animation: dotPulse 1s ease-in-out infinite;
+  }
+  @keyframes dotPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+  }
+
+  /* ── SCREENS ── */
+  .screen {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    pointer-events: auto;
+    transition: opacity 0.4s;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; }
+
+  #start-screen {
+    background: radial-gradient(ellipse at center, rgba(5,10,30,0.75) 0%, rgba(0,0,0,0.92) 100%);
+  }
+
+  .game-title {
+    font-family: 'Permanent Marker', cursive;
+    font-size: clamp(44px, 9vw, 88px);
+    color: #fff;
+    text-shadow: 
+      0 0 20px rgba(80,180,255,0.9),
+      0 0 60px rgba(60,120,255,0.5),
+      0 4px 8px rgba(0,0,0,0.8);
+    letter-spacing: 3px;
+    margin-bottom: 4px;
+    animation: titlePulse 2.5s ease-in-out infinite;
+  }
+  @keyframes titlePulse {
+    0%, 100% { text-shadow: 0 0 20px rgba(80,180,255,0.9), 0 0 60px rgba(60,120,255,0.5), 0 4px 8px rgba(0,0,0,0.8); }
+    50% { text-shadow: 0 0 30px rgba(100,200,255,1), 0 0 80px rgba(80,150,255,0.7), 0 4px 8px rgba(0,0,0,0.8); }
+  }
+
+  .game-subtitle {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(14px, 2.5vw, 22px);
+    color: rgba(150,220,255,0.6);
+    letter-spacing: 6px;
+    margin-bottom: 12px;
+  }
+
+  .game-desc {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(13px, 2vw, 17px);
+    color: rgba(255,255,255,0.4);
+    max-width: 400px;
+    text-align: center;
+    line-height: 1.5;
+    margin-bottom: 36px;
+    padding: 0 20px;
+  }
+
+  .start-btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 28px;
+    color: #fff;
+    background: linear-gradient(135deg, #3388ff, #5544ff);
+    border: none;
+    padding: 14px 52px;
+    border-radius: 60px;
+    cursor: pointer;
+    letter-spacing: 3px;
+    box-shadow: 0 4px 20px rgba(60,100,255,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .start-btn:hover {
+    transform: scale(1.06);
+    box-shadow: 0 6px 30px rgba(60,100,255,0.7), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  .start-btn:active { transform: scale(0.97); }
+
+  #gameover-screen {
+    background: radial-gradient(ellipse at center, rgba(20,5,40,0.85) 0%, rgba(0,0,0,0.95) 100%);
+  }
+
+  .go-title {
+    font-family: 'Permanent Marker', cursive;
+    font-size: clamp(36px, 7vw, 64px);
+    color: #ff6644;
+    text-shadow: 0 0 20px rgba(255,80,40,0.7), 0 4px 8px rgba(0,0,0,0.8);
+    margin-bottom: 8px;
+  }
+
+  .go-score {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(26px, 5vw, 44px);
+    color: #ffcc00;
+    text-shadow: 0 0 10px rgba(255,200,0,0.5);
+    margin-bottom: 4px;
+  }
+
+  .go-stats {
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 4px;
+  }
+
+  .go-best {
+    font-family: 'Bangers', cursive;
+    font-size: 18px;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 36px;
+  }
+
+  /* Level Up overlay */
+  .level-up {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Permanent Marker', cursive;
+    font-size: clamp(40px, 8vw, 72px);
+    color: #44ff88;
+    text-shadow: 0 0 30px rgba(68,255,136,0.8), 0 0 60px rgba(40,200,100,0.4), 0 4px 8px rgba(0,0,0,0.8);
+    pointer-events: none;
+    z-index: 6;
+    opacity: 0;
+    transition: none;
+  }
+  .level-up.show {
+    animation: levelUpAnim 1.5s ease-out forwards;
+  }
+  @keyframes levelUpAnim {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+    15% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    30% { transform: translate(-50%, -50%) scale(1); }
+    70% { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); }
+  }
+
+  .level-up-sub {
+    position: absolute; top: calc(50% + 50px); left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Fredoka One', cursive;
+    font-size: 20px;
+    color: rgba(150,255,200,0.8);
+    pointer-events: none;
+    z-index: 6;
+    opacity: 0;
+    letter-spacing: 3px;
+    white-space: nowrap;
+  }
+  .level-up-sub.show {
+    animation: levelUpAnim 1.5s ease-out 0.15s forwards;
+  }
+
+  /* Score popups */
+  .score-popup {
+    position: absolute;
+    font-family: 'Fredoka One', cursive;
+    font-size: 36px;
+    pointer-events: none;
+    z-index: 5;
+    animation: popUp 0.9s ease-out forwards;
+    white-space: nowrap;
+  }
+  .score-popup.correct {
+    color: #44ff88;
+    text-shadow: 0 0 12px rgba(68,255,136,0.8), 0 2px 4px rgba(0,0,0,0.6);
+  }
+  .score-popup.wrong {
+    color: #ff4444;
+    text-shadow: 0 0 12px rgba(255,60,60,0.8), 0 2px 4px rgba(0,0,0,0.6);
+  }
+  .score-popup.streak {
+    font-size: 48px;
+    color: #ffcc00;
+    text-shadow: 0 0 16px rgba(255,200,0,0.9), 0 0 40px rgba(255,150,0,0.4), 0 2px 4px rgba(0,0,0,0.6);
+  }
+
+  @keyframes popUp {
+    0% { transform: translateY(0) scale(0.4); opacity: 1; }
+    50% { transform: translateY(-40px) scale(1.1); opacity: 1; }
+    100% { transform: translateY(-90px) scale(1); opacity: 0; }
+  }
+
+  /* Answer reveal */
+  .answer-reveal {
+    position: absolute;
+    font-family: 'Fredoka One', cursive;
+    font-size: 56px;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(255,255,255,0.8), 0 0 40px rgba(100,200,255,0.4);
+    pointer-events: none;
+    z-index: 5;
+    animation: revealAnim 1s ease-out forwards;
+  }
+  @keyframes revealAnim {
+    0% { transform: scale(0); opacity: 0; }
+    20% { transform: scale(1.4); opacity: 1; }
+    40% { transform: scale(1); }
+    70% { opacity: 1; }
+    100% { transform: translateY(-30px) scale(0.8); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <canvas id="three-canvas"></canvas>
+  <canvas id="blade-canvas"></canvas>
+
+  <div id="ui-overlay">
+    <div class="hud">
+      <div class="hud-left">
+        <div class="hud-score" id="score-display">0</div>
+        <div class="hud-streak" id="streak-display"></div>
+        <div class="hud-level" id="level-display">LEVEL 1 — ADDITION</div>
+      </div>
+      <div>
+        <div class="hud-lives" id="lives-display"></div>
+        <div class="hud-best" id="best-display"></div>
+      </div>
+    </div>
+
+    <div class="target-area">
+      <div class="target-label">SLASH THE ANSWER</div>
+      <div class="target-number" id="target-display">?</div>
+    </div>
+
+    <div class="hud-progress" id="progress-display"></div>
+
+    <div class="level-up" id="level-up-text"></div>
+    <div class="level-up-sub" id="level-up-sub"></div>
+  </div>
+
+  <!-- TUTORIAL OVERLAY -->
+  <div id="tutorial-screen" class="tutorial-overlay hidden">
+    <div class="tut-step">
+      <div class="tut-target-demo">SLASH THE ANSWER</div>
+      <div class="tut-target-num" id="tut-target-num">12</div>
+
+      <div class="tut-arrow">⬇️</div>
+
+      <div class="tut-examples">
+        <div class="tut-fruit">
+          <div class="tut-fruit-circle good">3 × 4</div>
+          <div class="tut-label good">✓ SLASH!</div>
+        </div>
+        <div class="tut-fruit">
+          <div class="tut-fruit-circle good">7 + 5</div>
+          <div class="tut-label good">✓ SLASH!</div>
+        </div>
+        <div class="tut-fruit">
+          <div class="tut-fruit-circle bad">5 + 3</div>
+          <div class="tut-label bad">✗ AVOID!</div>
+        </div>
+      </div>
+
+      <div class="tut-hint">Solve the equation on each fruit.<br>Only slash the ones that equal the target number!</div>
+
+      <button class="tut-btn" id="tut-go-btn">GOT IT!</button>
+    </div>
+  </div>
+
+  <div id="input-layer">
+    <!-- ── WALLET CONNECT SCREEN ── -->
+    <div id="wallet-screen" class="screen">
+      <div class="game-title">MATH SLASH</div>
+      <div class="game-subtitle">LITDEX EDITION</div>
+      <div class="game-desc">Connect your wallet to play. Requires a LitDeXNFTv2 NFT.</div>
+      <button class="start-btn" id="connect-btn">CONNECT WALLET</button>
+      <div id="wallet-error" style="font-family:'Fredoka One',cursive;color:#ff6655;margin-top:16px;font-size:15px;text-align:center;max-width:340px;display:none;"></div>
+    </div>
+
+    <!-- ── START SCREEN (shown after wallet connected) ── -->
+    <div id="start-screen" class="screen hidden">
+      <div class="game-title">MATH SLASH</div>
+      <div class="game-subtitle">LITDEX EDITION</div>
+
+      <!-- Wallet Info Card -->
+      <div id="wallet-card" style="
+        background: rgba(20,40,80,0.85);
+        border: 1px solid rgba(100,180,255,0.25);
+        border-radius: 16px;
+        padding: 14px 26px;
+        margin-bottom: 18px;
+        min-width: 280px;
+        text-align: center;
+      ">
+        <div style="font-family:'Fredoka One',cursive;font-size:13px;color:rgba(150,200,255,0.6);letter-spacing:3px;margin-bottom:6px;">CONNECTED WALLET</div>
+        <div id="wallet-addr" style="font-family:'Fredoka One',cursive;font-size:15px;color:#fff;"></div>
+
+        <div style="display:flex;gap:18px;justify-content:center;margin-top:12px;flex-wrap:wrap;">
+          <div style="text-align:center;">
+            <div style="font-family:'Fredoka One',cursive;font-size:11px;color:rgba(150,200,255,0.55);letter-spacing:2px;margin-bottom:2px;">NFT TIER</div>
+            <div id="nft-tier-label" style="font-family:'Bangers',cursive;font-size:20px;color:#ffcc00;">—</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:'Fredoka One',cursive;font-size:11px;color:rgba(150,200,255,0.55);letter-spacing:2px;margin-bottom:2px;">GAME COST</div>
+            <div id="game-cost-label" style="font-family:'Bangers',cursive;font-size:20px;color:#44ff88;">— PTS</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:'Fredoka One',cursive;font-size:11px;color:rgba(150,200,255,0.55);letter-spacing:2px;margin-bottom:2px;">GAMES LEFT</div>
+            <div id="games-left-label" style="font-family:'Bangers',cursive;font-size:20px;color:#fff;">—</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:'Fredoka One',cursive;font-size:11px;color:rgba(150,200,255,0.55);letter-spacing:2px;margin-bottom:2px;">zkLTC EARNED</div>
+            <div id="zk-earned-label" style="font-family:'Bangers',cursive;font-size:20px;color:#cc88ff;">0</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="start-btn" id="start-btn" style="opacity:0.5;pointer-events:none;">LOADING…</button>
+      <div id="start-error" style="font-family:'Fredoka One',cursive;color:#ff6655;margin-top:14px;font-size:14px;text-align:center;max-width:340px;display:none;"></div>
+    </div>
+
+    <!-- ── GAME OVER SCREEN ── -->
+    <div id="gameover-screen" class="screen hidden">
+      <div class="go-title">GAME OVER</div>
+      <div class="go-score" id="go-score">Score: 0</div>
+      <div class="go-stats" id="go-stats">Correct: 0 | Wrong: 0</div>
+      <div class="go-stats" id="go-level">Reached Level 1</div>
+      <div class="go-best" id="go-best">Best: 0</div>
+
+      <!-- zkLTC reward summary -->
+      <div id="reward-card" style="
+        background: rgba(30,15,60,0.9);
+        border: 1px solid rgba(180,100,255,0.3);
+        border-radius: 14px;
+        padding: 12px 28px;
+        margin-bottom: 20px;
+        text-align:center;
+        display:none;
+      ">
+        <div style="font-family:'Fredoka One',cursive;font-size:13px;color:rgba(200,150,255,0.65);letter-spacing:3px;margin-bottom:4px;">REWARD</div>
+        <div id="go-zk-earned" style="font-family:'Bangers',cursive;font-size:30px;color:#cc88ff;text-shadow:0 0 12px rgba(180,80,255,0.6);">0 zkLTC</div>
+        <div id="go-games-left" style="font-family:'Fredoka One',cursive;font-size:13px;color:rgba(255,255,255,0.4);margin-top:4px;"></div>
+        <div id="go-tx-hash" style="font-family:'Fredoka One',cursive;font-size:11px;color:rgba(150,200,255,0.4);margin-top:4px;word-break:break-all;display:none;"></div>
+      </div>
+
+      <button class="start-btn" id="restart-btn">PLAY AGAIN</button>
+      <div id="go-error" style="font-family:'Fredoka One',cursive;color:#ff6655;margin-top:12px;font-size:13px;text-align:center;max-width:340px;display:none;"></div>
+    </div>
+  </div>
+
+  <!-- In-game HUD additions: games left + zkLTC -->
+  <div id="litdex-hud" style="
+    position:absolute; bottom:60px; left:50%;
+    transform:translateX(-50%);
+    display:flex; gap:24px; align-items:center;
+    z-index:5; pointer-events:none;
+    font-family:'Fredoka One',cursive;
+    opacity:0; transition:opacity 0.4s;
+  ">
+    <div style="text-align:center;">
+      <div style="font-size:11px;color:rgba(150,200,255,0.55);letter-spacing:2px;">GAMES LEFT</div>
+      <div id="hud-games-left" style="font-size:18px;color:#fff;font-family:'Bangers',cursive;">—</div>
+    </div>
+    <div style="width:1px;height:32px;background:rgba(255,255,255,0.15);"></div>
+    <div style="text-align:center;">
+      <div style="font-size:11px;color:rgba(200,150,255,0.6);letter-spacing:2px;">zkLTC TODAY</div>
+      <div id="hud-zk-today" style="font-size:18px;color:#cc88ff;font-family:'Bangers',cursive;">0</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  // ═════════════════════════════════════════════════════
+  //  CONSTANTS
+  // ═════════════════════════════════════════════════════
+  const GRAVITY = -13;
+  const MAX_LIVES = 3;
+  const ROUND_TARGET = 5; // correct slices to advance round
+  const COMBO_WINDOW = 800;
+
+  const FRUIT_VISUALS = [
+    { name:'watermelon', color:0x2d7a2d, innerColor:0xff3355, radius:0.82 },
+    { name:'orange',     color:0xff8800, innerColor:0xffaa33, radius:0.68 },
+    { name:'apple',      color:0xcc1122, innerColor:0xffffcc, radius:0.66 },
+    { name:'lemon',      color:0xeedd00, innerColor:0xffff99, radius:0.60 },
+    { name:'kiwi',       color:0x7a5533, innerColor:0x88cc44, radius:0.56 },
+    { name:'mango',      color:0xffaa00, innerColor:0xffdd44, radius:0.66 },
+    { name:'peach',      color:0xffaa88, innerColor:0xffddaa, radius:0.62 },
+    { name:'grape',      color:0x8833aa, innerColor:0xcc88ff, radius:0.58 },
+  ];
+
+  // ── LEVEL DEFINITIONS ──
+  const LEVELS = [
+    { name: 'Addition',       symbol: '+',  genEquation: genAdd1 },
+    { name: 'Addition II',    symbol: '+',  genEquation: genAdd2 },
+    { name: 'Subtraction',    symbol: '−',  genEquation: genSub1 },
+    { name: 'Subtraction II', symbol: '−',  genEquation: genSub2 },
+    { name: 'Multiplication', symbol: '×',  genEquation: genMul1 },
+    { name: 'Multiplication II', symbol: '×', genEquation: genMul2 },
+    { name: 'Mixed Ops',      symbol: '+-×', genEquation: genMixed },
+    { name: 'Challenge',      symbol: '?!',  genEquation: genChallenge },
+  ];
+
+  // Equation generators — each returns { text, answer }
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+  function genAdd1()  { const a = randInt(1,9),  b = randInt(1,9);  return { text: `${a} + ${b}`, answer: a+b }; }
+  function genAdd2()  { const a = randInt(5,20), b = randInt(5,20); return { text: `${a} + ${b}`, answer: a+b }; }
+  function genSub1()  { const a = randInt(5,15), b = randInt(1, a-1);  return { text: `${a} − ${b}`, answer: a-b }; }
+  function genSub2()  { const a = randInt(15,40), b = randInt(5, a-2); return { text: `${a} − ${b}`, answer: a-b }; }
+  function genMul1()  { const a = randInt(2,5),  b = randInt(2,5);  return { text: `${a} × ${b}`, answer: a*b }; }
+  function genMul2()  { const a = randInt(3,9),  b = randInt(2,9);  return { text: `${a} × ${b}`, answer: a*b }; }
+  function genMixed() {
+    const ops = [genAdd2, genSub1, genMul1];
+    return ops[randInt(0, ops.length-1)]();
+  }
+  function genChallenge() {
+    const ops = [genAdd2, genSub2, genMul2];
+    return ops[randInt(0, ops.length-1)]();
+  }
+
+  // Generate a target + array of equations (some correct, some wrong)
+  function generateRound(level) {
+    const gen = LEVELS[level].genEquation;
+    // Generate a correct equation to get the target
+    const correct = gen();
+    const target = correct.answer;
+
+    // Generate more correct equations for this target
+    const correctEqs = [correct];
+    let attempts = 0;
+    while (correctEqs.length < 3 && attempts < 50) {
+      const eq = gen();
+      if (eq.answer === target && !correctEqs.find(e => e.text === eq.text)) {
+        correctEqs.push(eq);
+      }
+      attempts++;
+    }
+
+    // Generate wrong equations
+    const wrongEqs = [];
+    attempts = 0;
+    while (wrongEqs.length < 4 && attempts < 80) {
+      const eq = gen();
+      if (eq.answer !== target) wrongEqs.push(eq);
+      attempts++;
+    }
+
+    return { target, correctEqs, wrongEqs };
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  DOM REFS
+  // ═════════════════════════════════════════════════════
+  const threeCanvas   = document.getElementById('three-canvas');
+  const bladeCanvas   = document.getElementById('blade-canvas');
+  const inputLayer    = document.getElementById('input-layer');
+  const scoreDisplay  = document.getElementById('score-display');
+  const streakDisplay = document.getElementById('streak-display');
+  const levelDisplay  = document.getElementById('level-display');
+  const livesDisplay  = document.getElementById('lives-display');
+  const bestDisplay   = document.getElementById('best-display');
+  const targetDisplay = document.getElementById('target-display');
+  const progressDisplay = document.getElementById('progress-display');
+  const levelUpText   = document.getElementById('level-up-text');
+  const levelUpSub    = document.getElementById('level-up-sub');
+  const startScreen   = document.getElementById('start-screen');
+  const goScreen      = document.getElementById('gameover-screen');
+  const tutScreen     = document.getElementById('tutorial-screen');
+  const tutTargetNum  = document.getElementById('tut-target-num');
+  const goScore       = document.getElementById('go-score');
+  const goStats       = document.getElementById('go-stats');
+  const goLevel       = document.getElementById('go-level');
+  const goBest        = document.getElementById('go-best');
+
+  // ═════════════════════════════════════════════════════
+  //  AUDIO
+  // ═════════════════════════════════════════════════════
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx;
+  function ensureAudio() { if (!audioCtx) audioCtx = new AudioCtx(); }
+
+  function playSliceCorrect() {
+    ensureAudio();
+    const now = audioCtx.currentTime;
+    // bright chime
+    [523, 659, 784].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.25, now + i * 0.04);
+      g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.3);
+      osc.connect(g).connect(audioCtx.destination);
+      osc.start(now + i * 0.04); osc.stop(now + i * 0.04 + 0.3);
+    });
+    // whoosh
+    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.1, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1)*(1-i/d.length)*0.2;
+    const src = audioCtx.createBufferSource(); src.buffer = buf;
+    const hp = audioCtx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=3000;
+    src.connect(hp).connect(audioCtx.destination);
+    src.start(now); src.stop(now+0.1);
+  }
+
+  function playSliceWrong() {
+    ensureAudio();
+    const now = audioCtx.currentTime;
+    // dissonant buzz
+    [150, 158].forEach(freq => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = freq;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.2, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.connect(g).connect(audioCtx.destination);
+      osc.start(now); osc.stop(now+0.35);
+    });
+  }
+
+  function playLevelUp() {
+    ensureAudio();
+    const now = audioCtx.currentTime;
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.2, now + i*0.1);
+      g.gain.exponentialRampToValueAtTime(0.001, now + i*0.1 + 0.5);
+      osc.connect(g).connect(audioCtx.destination);
+      osc.start(now + i*0.1); osc.stop(now + i*0.1 + 0.5);
+    });
+  }
+
+  function playMiss() {
+    ensureAudio();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(250, now);
+    osc.frequency.linearRampToValueAtTime(80, now+0.3);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.2, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now+0.3);
+    osc.connect(g).connect(audioCtx.destination);
+    osc.start(now); osc.stop(now+0.3);
+  }
+
+  function playCombo() {
+    ensureAudio();
+    const now = audioCtx.currentTime;
+    [784, 988, 1175].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.15, now + i*0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, now + i*0.05 + 0.4);
+      osc.connect(g).connect(audioCtx.destination);
+      osc.start(now + i*0.05); osc.stop(now + i*0.05 + 0.4);
+    });
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  THREE.JS
+  // ═════════════════════════════════════════════════════
+  const renderer = new THREE.WebGLRenderer({ canvas: threeCanvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+
+  const scene = new THREE.Scene();
+
+  // Shader background — deep blue-purple classroom vibe
+  const bgMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.999,1.0); }`,
+    fragmentShader: `
+      uniform float uTime;
+      varying vec2 vUv;
+      void main(){
+        vec3 top = vec3(0.01, 0.02, 0.08);
+        vec3 mid = vec3(0.04, 0.02, 0.07);
+        vec3 bot = vec3(0.08, 0.03, 0.04);
+        float t = vUv.y;
+        vec3 col = mix(bot, mid, smoothstep(0.0,0.5,t));
+        col = mix(col, top, smoothstep(0.5,1.0,t));
+        // subtle sparkle
+        float sparkle = sin(vUv.x*80.0+uTime*0.5)*sin(vUv.y*60.0-uTime*0.3);
+        col += vec3(0.01) * smoothstep(0.97, 1.0, sparkle);
+        float vig = 1.0 - 0.4*length((vUv-0.5)*vec2(1.4,1.0));
+        col *= vig;
+        gl_FragColor = vec4(col,1.0);
+      }
+    `,
+    depthWrite: false, depthTest: false,
+  });
+  const bgMesh = new THREE.Mesh(new THREE.PlaneGeometry(2,2), bgMat);
+  bgMesh.frustumCulled = false;
+  bgMesh.renderOrder = -1;
+  scene.add(bgMesh);
+
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+  camera.position.set(0, 2, 12);
+  camera.lookAt(0, 2, 0);
+
+  // Lights
+  scene.add(new THREE.AmbientLight(0x445566, 0.7));
+  const dirLight = new THREE.DirectionalLight(0xffeedd, 1.0);
+  dirLight.position.set(5, 10, 8);
+  dirLight.castShadow = true;
+  scene.add(dirLight);
+  scene.add(new THREE.DirectionalLight(0x6688ff, 0.35).translateX(-5).translateY(3).translateZ(-5));
+  const pointLight = new THREE.PointLight(0x4488ff, 0.5, 20);
+  pointLight.position.set(0, -2, 6);
+  scene.add(pointLight);
+
+  // ═════════════════════════════════════════════════════
+  //  EQUATION LABEL TEXTURES (Canvas → Sprite)
+  // ═════════════════════════════════════════════════════
+  function createLabelSprite(text, bgColor, textColor) {
+    const canvas = document.createElement('canvas');
+    const size = 256;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    // Circle background
+    ctx.beginPath();
+    ctx.arc(size/2, size/2, size/2 - 4, 0, Math.PI*2);
+    ctx.fillStyle = bgColor;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Text
+    const fontSize = text.length > 6 ? 42 : text.length > 4 ? 50 : 58;
+    ctx.font = `bold ${fontSize}px "Fredoka One", Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = textColor;
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = 6;
+    ctx.fillText(text, size/2, size/2);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.renderOrder = 999;
+    sprite.scale.set(1.9, 1.9, 1);
+    return sprite;
+  }
+
+  function createAnswerRevealSprite(answer) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256; canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    ctx.beginPath();
+    ctx.arc(128, 128, 110, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(68,255,136,0.9)';
+    ctx.fill();
+
+    ctx.font = 'bold 90px "Fredoka One", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 8;
+    ctx.fillText(String(answer), 128, 128);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false });
+    const sprite = new THREE.Sprite(mat);
+    sprite.renderOrder = 1000;
+    sprite.scale.set(2, 2, 1);
+    return sprite;
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  FRUIT MESH CREATION
+  // ═════════════════════════════════════════════════════
+  function createFruitMesh(visual) {
+    const geo = new THREE.SphereGeometry(visual.radius, 32, 32);
+    const mat = new THREE.MeshStandardMaterial({
+      color: visual.color, roughness: 0.35, metalness: 0.05,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+
+    // Stem
+    const stem = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.02, 0.03, 0.14, 8),
+      new THREE.MeshStandardMaterial({ color: 0x3a2a10, roughness: 0.8 })
+    );
+    stem.position.y = visual.radius * 0.88;
+    mesh.add(stem);
+
+    return mesh;
+  }
+
+  function createHalfFruit(visual, isTop) {
+    const group = new THREE.Group();
+    const geo = new THREE.SphereGeometry(visual.radius, 32, 32, 0, Math.PI*2, isTop ? 0 : Math.PI/2, Math.PI/2);
+    group.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: visual.color, roughness: 0.35, metalness: 0.05 })));
+
+    const circle = new THREE.Mesh(
+      new THREE.CircleGeometry(visual.radius * 0.97, 32),
+      new THREE.MeshStandardMaterial({ color: visual.innerColor, roughness: 0.6, metalness: 0 })
+    );
+    if (isTop) { circle.rotation.x = Math.PI; circle.position.y = -0.01; }
+    else { circle.position.y = 0.01; }
+    group.add(circle);
+
+    return group;
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  PARTICLES
+  // ═════════════════════════════════════════════════════
+  let particles = [];
+
+  function spawnParticles(pos, color, count, spread) {
+    const c = new THREE.Color(color);
+    for (let i = 0; i < count; i++) {
+      const size = 0.04 + Math.random()*0.08;
+      const mat = new THREE.MeshBasicMaterial({
+        color: c.clone().offsetHSL(Math.random()*0.06-0.03, 0, Math.random()*0.1-0.05),
+        transparent: true, opacity: 0.9,
+      });
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(size, 6, 6), mat);
+      mesh.position.copy(pos);
+      scene.add(mesh);
+      particles.push({
+        mesh,
+        vx: (Math.random()-0.5) * spread,
+        vy: Math.random()*6 + 2,
+        vz: (Math.random()-0.5) * (spread*0.5),
+        life: 0.5 + Math.random()*0.4,
+        age: 0,
+      });
+    }
+  }
+
+  // Star burst for correct answers
+  function spawnStars(pos, count) {
+    for (let i = 0; i < count; i++) {
+      const size = 0.06 + Math.random()*0.06;
+      const hue = Math.random()*0.15 + 0.1; // gold-green
+      const col = new THREE.Color().setHSL(hue, 1, 0.6 + Math.random()*0.3);
+      const mat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 1 });
+      const geo = new THREE.OctahedronGeometry(size, 0);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.copy(pos);
+      scene.add(mesh);
+      const speed = 3 + Math.random()*5;
+      const angle = Math.random()*Math.PI*2;
+      particles.push({
+        mesh,
+        vx: Math.cos(angle)*speed,
+        vy: Math.sin(angle)*speed*0.8 + 3,
+        vz: (Math.random()-0.5)*3,
+        life: 0.7 + Math.random()*0.5,
+        age: 0,
+        spin: (Math.random()-0.5)*10,
+      });
+    }
+  }
+
+  // Red X for wrong answers
+  function spawnRedX(pos) {
+    for (let i = 0; i < 15; i++) {
+      const size = 0.05 + Math.random()*0.07;
+      const mat = new THREE.MeshBasicMaterial({ color: 0xff2222, transparent: true, opacity: 1 });
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(size, 6, 6), mat);
+      mesh.position.copy(pos);
+      scene.add(mesh);
+      const speed = 2 + Math.random()*4;
+      const angle = Math.random()*Math.PI*2;
+      particles.push({
+        mesh, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed*0.5 + 2,
+        vz: (Math.random()-0.5)*2, life: 0.4 + Math.random()*0.3, age: 0,
+      });
+    }
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  BLADE TRAIL
+  // ═════════════════════════════════════════════════════
+  const bCtx = bladeCanvas.getContext('2d');
+  let bladeTrail = [];
+  const BLADE_LIFETIME = 130;
+
+  function drawBlade() {
+    bCtx.clearRect(0, 0, bladeCanvas.width, bladeCanvas.height);
+    const now = performance.now();
+    bladeTrail = bladeTrail.filter(p => now - p.t < BLADE_LIFETIME);
+    if (bladeTrail.length < 2) return;
+
+    for (let pass = 0; pass < 3; pass++) {
+      bCtx.beginPath();
+      const widths = [20, 10, 3];
+      const alphas = [0.06, 0.2, 0.85];
+      const colors = ['150,200,255', '180,220,255', '255,255,255'];
+      bCtx.lineWidth = widths[pass];
+      bCtx.lineCap = 'round'; bCtx.lineJoin = 'round';
+      for (let i = 0; i < bladeTrail.length; i++) {
+        const p = bladeTrail[i];
+        const alpha = alphas[pass] * (1 - (now - p.t) / BLADE_LIFETIME);
+        bCtx.strokeStyle = `rgba(${colors[pass]},${alpha})`;
+        if (i === 0) bCtx.moveTo(p.x, p.y); else bCtx.lineTo(p.x, p.y);
+      }
+      bCtx.stroke();
+    }
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  GAME STATE
+  // ═════════════════════════════════════════════════════
+  let gameState = 'menu';
+  let score = 0;
+  let lives = MAX_LIVES;
+  let bestScore = parseInt(localStorage.getItem('mathslash_best') || '0');
+  let currentLevel = 0;
+  let roundData = null;
+  let roundCorrect = 0;
+  let totalCorrect = 0;
+  let totalWrong = 0;
+  let streak = 0;
+  let lastSliceTime = 0;
+  let spawnTimer = 0;
+  let spawnInterval = 1.6;
+  let screenShake = 0;
+
+  let fruits = [];         // active flying fruits
+  let fruitHalves = [];    // sliced halves
+  let answerSprites = [];  // the big answer reveal
+
+  // ═════════════════════════════════════════════════════
+  //  ROUND MANAGEMENT
+  // ═════════════════════════════════════════════════════
+  function startNewRound() {
+    roundData = generateRound(currentLevel);
+    roundCorrect = 0;
+    targetDisplay.textContent = roundData.target;
+    updateProgress();
+  }
+
+  function advanceLevel() {
+    currentLevel = Math.min(currentLevel + 1, LEVELS.length - 1);
+    playLevelUp();
+    levelDisplay.textContent = `LEVEL ${currentLevel+1} — ${LEVELS[currentLevel].name.toUpperCase()}`;
+    spawnInterval = Math.max(0.6, spawnInterval - 0.12);
+
+    // Flash
+    levelUpText.textContent = `LEVEL ${currentLevel+1}!`;
+    levelUpSub.textContent = LEVELS[currentLevel].name.toUpperCase();
+    levelUpText.className = 'level-up show';
+    levelUpSub.className = 'level-up-sub show';
+    setTimeout(() => {
+      levelUpText.className = 'level-up';
+      levelUpSub.className = 'level-up-sub';
+    }, 1600);
+
+    startNewRound();
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  SPAWNING
+  // ═════════════════════════════════════════════════════
+  function spawnEquationFruit() {
+    if (!roundData) return;
+
+    // Decide: correct or wrong (60% correct, 40% wrong)
+    const isCorrect = Math.random() < 0.6;
+    let eq;
+    if (isCorrect && roundData.correctEqs.length > 0) {
+      eq = roundData.correctEqs[Math.floor(Math.random() * roundData.correctEqs.length)];
+    } else if (roundData.wrongEqs.length > 0) {
+      eq = roundData.wrongEqs[Math.floor(Math.random() * roundData.wrongEqs.length)];
+    } else {
+      eq = roundData.correctEqs[0];
+    }
+
+    const visual = FRUIT_VISUALS[Math.floor(Math.random() * FRUIT_VISUALS.length)];
+    const mesh = createFruitMesh(visual);
+
+    // Add equation label sprite — same color for all (must solve to know!)
+    const isRight = eq.answer === roundData.target;
+    const sprite = createLabelSprite(
+      eq.text,
+      'rgba(15,20,40,0.88)',
+      '#ffffff'
+    );
+    sprite.position.y = 0;
+    sprite.position.z = 1.2;
+    sprite.renderOrder = 999;
+    mesh.add(sprite);
+
+    const w = 7;
+    const x = (Math.random() - 0.5) * w;
+    mesh.position.set(x, -3.5, (Math.random()-0.5)*1.5);
+    scene.add(mesh);
+
+    const vy = 11 + Math.random()*4;
+    fruits.push({
+      mesh, visual, equation: eq,
+      isCorrect: isRight,
+      vx: (Math.random()-0.5)*2.5 - x*0.25,
+      vy,
+      vz: (Math.random()-0.5)*0.4,
+      rx: (Math.random()-0.5)*3,
+      ry: (Math.random()-0.5)*3,
+      rz: (Math.random()-0.5)*3,
+      sliced: false,
+      missed: false,
+    });
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  SLICING
+  // ═════════════════════════════════════════════════════
+  const raycaster = new THREE.Raycaster();
+  const mouse3D = new THREE.Vector2();
+  let isSlicing = false;
+
+  function getPointerPos(e) {
+    const rect = threeCanvas.getBoundingClientRect();
+    const touch = e.touches ? e.touches[0] : e;
+    return {
+      x: touch.clientX, y: touch.clientY,
+      nx: ((touch.clientX - rect.left) / rect.width) * 2 - 1,
+      ny: -((touch.clientY - rect.top) / rect.height) * 2 + 1,
+    };
+  }
+
+  function checkSlice(nx, ny) {
+    mouse3D.set(nx, ny);
+    raycaster.setFromCamera(mouse3D, camera);
+    for (const fruit of fruits) {
+      if (fruit.sliced) continue;
+      const hits = raycaster.intersectObject(fruit.mesh, true);
+      if (hits.length > 0) sliceFruit(fruit);
+    }
+  }
+
+  function sliceFruit(fruit) {
+    fruit.sliced = true;
+    const pos = fruit.mesh.position.clone();
+    const now = performance.now();
+
+    if (fruit.isCorrect) {
+      // ── CORRECT ──
+      playSliceCorrect();
+      roundCorrect++;
+      totalCorrect++;
+
+      // Streak
+      if (now - lastSliceTime < COMBO_WINDOW) {
+        streak++;
+        if (streak >= 3) playCombo();
+      } else {
+        streak = 1;
+      }
+      lastSliceTime = now;
+
+      const points = 10 * streak;
+      score += points;
+
+      // Green juice + stars
+      spawnParticles(pos, fruit.visual.innerColor, 20, 7);
+      spawnStars(pos, 12);
+
+      // Answer reveal sprite
+      const revealSprite = createAnswerRevealSprite(fruit.equation.answer);
+      revealSprite.position.copy(pos);
+      revealSprite.position.z += 1;
+      scene.add(revealSprite);
+      answerSprites.push({ mesh: revealSprite, age: 0, life: 1.0 });
+
+      // HUD feedback
+      showPopup(pos, `+${points}`, streak >= 3 ? 'streak' : 'correct');
+      targetDisplay.classList.remove('correct-flash');
+      void targetDisplay.offsetWidth;
+      targetDisplay.classList.add('correct-flash');
+
+      if (streak >= 3) {
+        streakDisplay.textContent = `🔥 ${streak}x STREAK!`;
+        streakDisplay.style.opacity = 1;
+        clearTimeout(streakDisplay._t);
+        streakDisplay._t = setTimeout(() => streakDisplay.style.opacity = 0, 1500);
+      }
+
+      // Check round progress
+      updateProgress();
+      if (roundCorrect >= ROUND_TARGET) {
+        setTimeout(() => { if (gameState === 'playing') advanceLevel(); }, 400);
+      }
+    } else {
+      // ── WRONG ──
+      playSliceWrong();
+      totalWrong++;
+      streak = 0;
+      lives--;
+
+      spawnRedX(pos);
+      showPopup(pos, `✗ = ${fruit.equation.answer}`, 'wrong');
+      targetDisplay.classList.remove('wrong-flash');
+      void targetDisplay.offsetWidth;
+      targetDisplay.classList.add('wrong-flash');
+      screenShake = 0.3;
+
+      if (lives <= 0) {
+        setTimeout(() => endGame(), 500);
+      }
+    }
+
+    // Create halves
+    scene.remove(fruit.mesh);
+    [true, false].forEach((isTop, idx) => {
+      const half = createHalfFruit(fruit.visual, isTop);
+      half.position.copy(pos);
+      scene.add(half);
+      fruitHalves.push({
+        mesh: half,
+        vx: fruit.vx + (idx === 0 ? -1.5 : 1.5),
+        vy: fruit.vy * 0.25 + 2 + Math.random()*2,
+        vz: idx === 0 ? -1 : 1,
+        rx: (Math.random()-0.5)*5,
+        ry: 0,
+        rz: (Math.random()-0.5)*4,
+        life: 1.8, age: 0,
+      });
+    });
+
+    updateHUD();
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  UI HELPERS
+  // ═════════════════════════════════════════════════════
+  function showPopup(worldPos, text, type) {
+    const proj = worldPos.clone().project(camera);
+    const sx = (proj.x * 0.5 + 0.5) * window.innerWidth;
+    const sy = (-proj.y * 0.5 + 0.5) * window.innerHeight;
+    const el = document.createElement('div');
+    el.className = `score-popup ${type}`;
+    el.textContent = text;
+    el.style.left = sx + 'px'; el.style.top = sy + 'px';
+    document.getElementById('ui-overlay').appendChild(el);
+    setTimeout(() => el.remove(), 900);
+  }
+
+  function updateHUD() {
+    scoreDisplay.textContent = score;
+    livesDisplay.innerHTML = '';
+    for (let i = 0; i < MAX_LIVES; i++) {
+      const h = document.createElement('span');
+      h.className = 'heart' + (i >= lives ? ' lost' : '');
+      h.textContent = '❤️';
+      livesDisplay.appendChild(h);
+    }
+    bestDisplay.textContent = `BEST: ${bestScore}`;
+  }
+
+  function updateProgress() {
+    progressDisplay.innerHTML = '';
+    for (let i = 0; i < ROUND_TARGET; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'progress-dot';
+      if (i < roundCorrect) dot.classList.add('filled');
+      else if (i === roundCorrect) dot.classList.add('current');
+      progressDisplay.appendChild(dot);
+    }
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  GAME FLOW
+  // ═════════════════════════════════════════════════════
+  let firstPlay = true;
+
+  function showTutorial() {
+    // Generate a preview round so the tutorial shows the actual first target
+    const previewRound = generateRound(0);
+    tutTargetNum.textContent = previewRound.target;
+    tutScreen.classList.remove('hidden');
+  }
+
+  function beginActualGame() {
+    tutScreen.classList.add('hidden');
+    gameState = 'playing';
+    score = 0; lives = MAX_LIVES;
+    currentLevel = 0; streak = 0;
+    totalCorrect = 0; totalWrong = 0;
+    spawnTimer = 0; spawnInterval = 1.6;
+
+    fruits.forEach(f => scene.remove(f.mesh));
+    fruitHalves.forEach(f => scene.remove(f.mesh));
+    particles.forEach(p => scene.remove(p.mesh));
+    answerSprites.forEach(a => scene.remove(a.mesh));
+    fruits = []; fruitHalves = []; particles = []; answerSprites = [];
+
+    levelDisplay.textContent = `LEVEL 1 — ${LEVELS[0].name.toUpperCase()}`;
+    startNewRound();
+    updateHUD();
+    startScreen.classList.add('hidden');
+    goScreen.classList.add('hidden');
+
+    // Show in-game LitDeX HUD
+    const litdexHud = document.getElementById('litdex-hud');
+    if (litdexHud) litdexHud.style.opacity = '1';
+  }
+
+  function startGame() {
+    if (firstPlay) {
+      firstPlay = false;
+      startScreen.classList.add('hidden');
+      showTutorial();
+    } else {
+      beginActualGame();
+    }
+  }
+
+  function endGame() {
+    gameState = 'gameover';
+    if (score > bestScore) {
+      bestScore = score;
+      localStorage.setItem('mathslash_best', bestScore.toString());
+    }
+    goScore.textContent = `Score: ${score}`;
+    goStats.textContent = `Correct: ${totalCorrect}  |  Wrong: ${totalWrong}`;
+    goLevel.textContent = `Reached Level ${currentLevel+1} — ${LEVELS[currentLevel].name}`;
+    goBest.textContent = `Best: ${bestScore}`;
+
+    // Hide in-game LitDeX HUD
+    const litdexHud = document.getElementById('litdex-hud');
+    if (litdexHud) litdexHud.style.opacity = '0';
+
+    goScreen.classList.remove('hidden');
+
+    // Call LitDeX /end endpoint
+    LitDeX.endSession(score);
+  }
+
+  // ═════════════════════════════════════════════════════
+  //  INPUT
+  // ═════════════════════════════════════════════════════
+  inputLayer.addEventListener('mousedown', e => {
+    if (gameState !== 'playing') return;
+    isSlicing = true;
+    const p = getPointerPos(e);
+    bladeTrail.push({ x: p.x, y: p.y, t: performance.now() });
+  });
+  inputLayer.addEventListener('mousemove', e => {
+    if (!isSlicing || gameState !== 'playing') return;
+    const p = getPointerPos(e);
+    bladeTrail.push({ x: p.x, y: p.y, t: performance.now() });
+    checkSlice(p.nx, p.ny);
+  });
+  inputLayer.addEventListener('mouseup', () => isSlicing = false);
+  inputLayer.addEventListener('mouseleave', () => isSlicing = false);
+
+  inputLayer.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (gameState !== 'playing') return;
+    isSlicing = true;
+    const p = getPointerPos(e);
+    bladeTrail.push({ x: p.x, y: p.y, t: performance.now() });
+  }, { passive: false });
+  inputLayer.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (!isSlicing || gameState !== 'playing') return;
+    const p = getPointerPos(e);
+    bladeTrail.push({ x: p.x, y: p.y, t: performance.now() });
+    checkSlice(p.nx, p.ny);
+  }, { passive: false });
+  inputLayer.addEventListener('touchend', () => isSlicing = false);
+
+  document.getElementById('start-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('start-btn');
+    const errEl = document.getElementById('start-error');
+    errEl.style.display = 'none';
+    btn.textContent = 'STARTING…';
+    btn.style.opacity = '0.5';
+    btn.style.pointerEvents = 'none';
+
+    const ok = await LitDeX.startSession();
+    if (ok) {
+      startGame();
+    } else {
+      btn.textContent = 'TRY AGAIN';
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    }
+  });
+
+  document.getElementById('restart-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('restart-btn');
+    const errEl = document.getElementById('go-error');
+    errEl.style.display = 'none';
+    btn.textContent = 'STARTING…';
+    btn.style.opacity = '0.5';
+    btn.style.pointerEvents = 'none';
+
+    // Refresh stats before new game
+    await LitDeX.loadStats();
+
+    const ok = await LitDeX.startSession();
+    if (ok) {
+      goScreen.classList.add('hidden');
+      document.getElementById('reward-card').style.display = 'none';
+      startGame();
+    } else {
+      btn.textContent = 'PLAY AGAIN';
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    }
+  });
+
+  document.getElementById('tut-go-btn').addEventListener('click', beginActualGame);
+
+  // ═════════════════════════════════════════════════════
+  //  RESIZE
+  // ═════════════════════════════════════════════════════
+  function resize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    const dpr = Math.min(window.devicePixelRatio, 2);
+    bladeCanvas.width = w * dpr; bladeCanvas.height = h * dpr;
+    bladeCanvas.style.width = w + 'px'; bladeCanvas.style.height = h + 'px';
+    bCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // ═════════════════════════════════════════════════════
+  //  MAIN LOOP
+  // ═════════════════════════════════════════════════════
+  let lastTime = performance.now();
+
+  function update() {
+    requestAnimationFrame(update);
+    const now = performance.now();
+    let dt = Math.min((now - lastTime) / 1000, 0.05);
+    lastTime = now;
+
+    if (gameState === 'playing') {
+      // Spawn
+      spawnTimer += dt;
+      if (spawnTimer >= spawnInterval) {
+        spawnTimer = 0;
+        const count = 1 + Math.floor(Math.random() * Math.min(3, 1 + Math.floor(score/80)));
+        for (let i = 0; i < count; i++) {
+          setTimeout(() => { if (gameState === 'playing') spawnEquationFruit(); }, i * 150);
+        }
+      }
+
+      // Update fruits
+      for (const f of fruits) {
+        if (f.sliced) continue;
+        f.mesh.position.x += f.vx * dt;
+        f.mesh.position.y += f.vy * dt;
+        f.mesh.position.z += f.vz * dt;
+        f.vy += GRAVITY * dt;
+        f.mesh.rotation.x += f.rx * dt;
+        f.mesh.rotation.y += f.ry * dt;
+        f.mesh.rotation.z += f.rz * dt;
+
+        // Missed correct fruit = lose life
+        if (f.mesh.position.y < -5 && f.vy < 0 && !f.missed) {
+          f.missed = true;
+          if (f.isCorrect) {
+            lives--;
+            streak = 0;
+            playMiss();
+            updateHUD();
+            if (lives <= 0) setTimeout(() => endGame(), 300);
+          }
+          // Wrong fruits falling off = no penalty (good!)
+        }
+      }
+      fruits = fruits.filter(f => {
+        if (f.mesh.position.y < -10) { scene.remove(f.mesh); return false; }
+        return true;
+      });
+    }
+
+    // Halves
+    for (const h of fruitHalves) {
+      h.age += dt;
+      h.mesh.position.x += h.vx * dt;
+      h.mesh.position.y += h.vy * dt;
+      h.mesh.position.z += h.vz * dt;
+      h.vy += GRAVITY * dt;
+      h.mesh.rotation.x += h.rx * dt;
+      h.mesh.rotation.z += h.rz * dt;
+      if (h.age > h.life * 0.6) {
+        const a = 1 - (h.age - h.life*0.6)/(h.life*0.4);
+        h.mesh.traverse(c => { if (c.material) { c.material.transparent = true; c.material.opacity = Math.max(0,a); }});
+      }
+    }
+    fruitHalves = fruitHalves.filter(h => {
+      if (h.age > h.life) { scene.remove(h.mesh); return false; }
+      return true;
+    });
+
+    // Answer reveal sprites
+    for (const a of answerSprites) {
+      a.age += dt;
+      const t = a.age / a.life;
+      a.mesh.position.y += 1.5 * dt;
+      const scale = t < 0.2 ? t/0.2 * 2.2 : 2.2 - t * 0.5;
+      a.mesh.scale.set(scale, scale, 1);
+      a.mesh.material.opacity = t > 0.5 ? 1 - (t-0.5)/0.5 : 1;
+    }
+    answerSprites = answerSprites.filter(a => {
+      if (a.age > a.life) { scene.remove(a.mesh); return false; }
+      return true;
+    });
+
+    // Particles
+    for (const p of particles) {
+      p.age += dt;
+      p.mesh.position.x += p.vx * dt;
+      p.mesh.position.y += p.vy * dt;
+      p.mesh.position.z += p.vz * dt;
+      p.vy += GRAVITY * 0.7 * dt;
+      if (p.spin) p.mesh.rotation.x += p.spin * dt;
+      const alpha = 1 - p.age / p.life;
+      p.mesh.material.opacity = Math.max(0, alpha);
+      p.mesh.scale.setScalar(Math.max(0.1, alpha));
+    }
+    particles = particles.filter(p => {
+      if (p.age > p.life) { scene.remove(p.mesh); return false; }
+      return true;
+    });
+
+    // Screen shake
+    if (screenShake > 0) {
+      screenShake -= dt * 2;
+      const s = screenShake * 0.35;
+      camera.position.x = (Math.random()-0.5)*s;
+      camera.position.y = 2 + (Math.random()-0.5)*s;
+    } else {
+      camera.position.x = 0; camera.position.y = 2;
+    }
+
+    bgMat.uniforms.uTime.value = now * 0.001;
+    pointLight.intensity = 0.4 + Math.sin(now*0.003)*0.15;
+
+    drawBlade();
+    renderer.render(scene, camera);
+  }
+
+  updateHUD();
+  update();
+
+  // ═════════════════════════════════════════════════════
+  //  LITDEX INTEGRATION
+  // ═════════════════════════════════════════════════════
+  // Injected after the game loop — uses game globals (score) already in scope.
+})();
+
+// ── LitDeX module (outside game IIFE, global scope) ──────────────────────
+const LitDeX = (() => {
+  const API   = 'https://game.test-hub.xyz';
+  const CHAIN = '0x115D'; // 4441 in hex
+
+  const NFT_TIERS = { 0: '—', 1: 'COMMON', 2: 'RARE', 3: 'EPIC' };
+  const TIER_COLORS = { 0: '#888', 1: '#aabbcc', 2: '#44bbff', 3: '#ffcc00' };
+
+  let walletAddress  = null;
+  let activeSession  = null;  // { sessionId, cost, bonusPoints }
+  let sessionZkLtc   = 0;     // accumulated this session
+  let totalZkToday   = 0;
+
+  // ── DOM helpers ───────────────────────────────────────────────────────
+  function el(id) { return document.getElementById(id); }
+  function showErr(elId, msg) {
+    const e = el(elId);
+    if (e) { e.textContent = msg; e.style.display = 'block'; }
+  }
+  function hideErr(elId) {
+    const e = el(elId);
+    if (e) { e.style.display = 'none'; }
+  }
+
+  // ── Switch chain to LiteForge ─────────────────────────────────────────
+  async function switchChain() {
+    try {
+      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN }] });
+      return true;
+    } catch (err) {
+      if (err.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId:         CHAIN,
+              chainName:       'LiteForge (LitVM)',
+              nativeCurrency:  { name: 'LTC', symbol: 'LTC', decimals: 18 },
+              rpcUrls:         ['https://liteforge.rpc.caldera.xyz/http'],
+              blockExplorerUrls: [],
+            }],
+          });
+          return true;
+        } catch { return false; }
+      }
+      return false;
+    }
+  }
+
+  // ── Wallet connect ────────────────────────────────────────────────────
+  async function connectWallet() {
+    const connectBtn  = el('connect-btn');
+    const walletScr   = el('wallet-screen');
+    const startScr    = el('start-screen');
+
+    hideErr('wallet-error');
+
+    if (!window.ethereum) {
+      showErr('wallet-error', '⚠ MetaMask not detected. Please install it and reload.');
+      return;
+    }
+
+    connectBtn.textContent = 'CONNECTING…';
+    connectBtn.style.opacity = '0.5';
+    connectBtn.style.pointerEvents = 'none';
+
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      if (!accounts || accounts.length === 0) throw new Error('No accounts returned');
+      walletAddress = accounts[0];
+
+      const switched = await switchChain();
+      if (!switched) {
+        showErr('wallet-error', '⚠ Please switch to LiteForge (Chain ID 4441) in MetaMask.');
+        connectBtn.textContent = 'CONNECT WALLET';
+        connectBtn.style.opacity = '1';
+        connectBtn.style.pointerEvents = 'auto';
+        return;
+      }
+
+      // Show start screen, populate wallet card
+      walletScr.classList.add('hidden');
+      startScr.classList.remove('hidden');
+      el('wallet-addr').textContent = walletAddress.slice(0,6) + '…' + walletAddress.slice(-4);
+
+      await loadStats();
+
+    } catch (err) {
+      showErr('wallet-error', '⚠ ' + (err.message || 'Connection failed'));
+      connectBtn.textContent = 'CONNECT WALLET';
+      connectBtn.style.opacity = '1';
+      connectBtn.style.pointerEvents = 'auto';
+    }
+  }
+
+  // ── Load stats from backend ───────────────────────────────────────────
+  async function loadStats() {
+    if (!walletAddress) return;
+    try {
+      const r = await fetch(`${API}/game/mathslash/stats/${walletAddress}`);
+      const data = await r.json();
+
+      if (!r.ok) {
+        if (data.error && data.error.includes('NFT')) {
+          showErr('start-error', '⚠ No LitDeXNFTv2 NFT found. You need one to play.');
+        }
+        return;
+      }
+
+      totalZkToday = data.totalZkLtcEarned || 0;
+
+      // Tier
+      const tier = data.nftTier || 0;
+      const tierLabel = el('nft-tier-label');
+      if (tierLabel) {
+        tierLabel.textContent = NFT_TIERS[tier] || '—';
+        tierLabel.style.color = TIER_COLORS[tier] || '#888';
+      }
+
+      // Cost
+      const costLabel = el('game-cost-label');
+      if (costLabel) {
+        if (data.isFree) {
+          costLabel.textContent = 'FREE ✨';
+          costLabel.style.color = '#44ff88';
+        } else {
+          costLabel.textContent = `${data.gameCost} PTS`;
+          costLabel.style.color = '#44ff88';
+        }
+      }
+
+      // Games left
+      const gamesLeftLabel = el('games-left-label');
+      if (gamesLeftLabel) gamesLeftLabel.textContent = data.gamesLeft ?? '—';
+
+      // zkLTC earned today
+      const zkLabel = el('zk-earned-label');
+      if (zkLabel) zkLabel.textContent = totalZkToday.toFixed(7);
+
+      // In-game HUD
+      const hudLeft = el('hud-games-left');
+      const hudZk   = el('hud-zk-today');
+      if (hudLeft) hudLeft.textContent = data.gamesLeft ?? '—';
+      if (hudZk)   hudZk.textContent   = totalZkToday.toFixed(7);
+
+      // Enable start button if NFT found
+      const startBtn = el('start-btn');
+      if (startBtn && tier > 0 && (data.gamesLeft > 0)) {
+        startBtn.textContent = 'PLAY';
+        startBtn.style.opacity = '1';
+        startBtn.style.pointerEvents = 'auto';
+      } else if (startBtn) {
+        if (tier === 0) {
+          startBtn.textContent = 'NO NFT';
+          showErr('start-error', '⚠ You need a LitDeXNFTv2 NFT to play.');
+        } else {
+          startBtn.textContent = 'LIMIT REACHED';
+          showErr('start-error', '⚠ Daily limit (100 games) reached. Resets at 00:00 IST.');
+        }
+      }
+
+    } catch (err) {
+      console.warn('[LitDeX] loadStats error:', err);
+    }
+  }
+
+  // ── Start session (deduct points, get sessionId) ──────────────────────
+  async function startSession() {
+    if (!walletAddress) return false;
+    hideErr('start-error');
+    hideErr('go-error');
+    try {
+      const r = await fetch(`${API}/game/mathslash/start`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ wallet: walletAddress }),
+      });
+      const data = await r.json();
+
+      if (!r.ok) {
+        const errId = document.getElementById('gameover-screen').classList.contains('hidden')
+          ? 'start-error' : 'go-error';
+        showErr(errId, '⚠ ' + (data.error || 'Could not start game'));
+        return false;
+      }
+
+      activeSession = {
+        sessionId:   data.sessionId,
+        cost:        data.cost,
+        bonusPoints: data.bonusPoints || 0,
+        gamesLeft:   data.gamesLeft,
+      };
+      sessionZkLtc = 0;
+
+      // Update HUD games left immediately
+      const hudLeft = el('hud-games-left');
+      if (hudLeft) hudLeft.textContent = data.gamesLeft;
+      const gll = el('games-left-label');
+      if (gll) gll.textContent = data.gamesLeft;
+
+      return true;
+
+    } catch (err) {
+      const errId = document.getElementById('gameover-screen').classList.contains('hidden')
+        ? 'start-error' : 'go-error';
+      showErr(errId, '⚠ Network error. Check your connection.');
+      return false;
+    }
+  }
+
+  // ── End session (submit score, receive zkLTC) ─────────────────────────
+  async function endSession(score) {
+    if (!activeSession) return;
+    const { sessionId } = activeSession;
+    activeSession = null;
+
+    try {
+      const r = await fetch(`${API}/game/mathslash/end`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ sessionId, score }),
+      });
+      const data = await r.json();
+
+      const rewardCard = el('reward-card');
+      const zkEl       = el('go-zk-earned');
+      const gamesEl    = el('go-games-left');
+      const txEl       = el('go-tx-hash');
+
+      if (r.ok && data.success) {
+        sessionZkLtc = data.zkLtcEarned || 0;
+        totalZkToday += sessionZkLtc;
+
+        if (rewardCard) rewardCard.style.display = 'block';
+        if (zkEl)    zkEl.textContent = `+${sessionZkLtc.toFixed(7)} zkLTC`;
+        if (gamesEl) gamesEl.textContent = `Games left today: ${activeSession?.gamesLeft ?? '—'}`;
+        if (data.txHash && txEl) {
+          txEl.innerHTML = `TX: <a href="https://liteforge.explorer.caldera.xyz/tx/${data.txHash}" target="_blank" style="color:rgba(150,200,255,0.7);text-decoration:underline;">${data.txHash.slice(0,12)}...${data.txHash.slice(-6)}</a>`;
+          txEl.style.display = 'block';
+        }
+
+        // Update today total in HUD/card
+        const hudZk = el('hud-zk-today');
+        if (hudZk) hudZk.textContent = totalZkToday.toFixed(7);
+        const zkTodayCard = el('zk-earned-label');
+        if (zkTodayCard) zkTodayCard.textContent = totalZkToday.toFixed(7);
+
+      } else {
+        if (rewardCard) rewardCard.style.display = 'block';
+        if (zkEl)    zkEl.textContent = 'Reward pending…';
+        if (gamesEl) gamesEl.textContent = data.error || 'Could not fetch reward';
+        showErr('go-error', '⚠ ' + (data.error || 'Reward dispatch failed'));
+      }
+    } catch (err) {
+      console.warn('[LitDeX] endSession error:', err);
+      showErr('go-error', '⚠ Network error submitting score.');
+    }
+  }
+
+  // ── Init: bind connect button, watch account changes ─────────────────
+  function init() {
+    const connectBtn = el('connect-btn');
+    if (connectBtn) connectBtn.addEventListener('click', connectWallet);
+
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', accs => {
+        if (accs.length === 0) {
+          // Disconnected — reload
+          location.reload();
+        } else if (accs[0].toLowerCase() !== (walletAddress || '').toLowerCase()) {
+          walletAddress = accs[0];
+          loadStats();
+        }
+      });
+      window.ethereum.on('chainChanged', () => location.reload());
+    }
+  }
+
+  init();
+  return { connectWallet, loadStats, startSession, endSession };
+})();
+</script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"00657c1074734fedabd0787315c9dc60","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
