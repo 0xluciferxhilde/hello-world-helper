@@ -740,6 +740,39 @@
 
       <button class="start-btn" id="start-btn" style="opacity:0.5;pointer-events:none;">LOADING…</button>
       <div id="start-error" style="font-family:'Fredoka One',cursive;color:#ff6655;margin-top:14px;font-size:14px;text-align:center;max-width:340px;display:none;"></div>
+
+      <!-- ── WEEKLY LEADERBOARD ── -->
+      <div id="weekly-leaderboard" style="
+        position: absolute;
+        top: 50%;
+        right: 24px;
+        transform: translateY(-50%);
+        width: 300px;
+        max-height: 80vh;
+        overflow-y: auto;
+        background: #0a0a0a;
+        border: 1px solid #1f1f1f;
+        border-radius: 8px;
+        padding: 16px;
+        font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        color: #ddd;
+        z-index: 6;
+      ">
+        <div style="font-size: 13px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #fff; margin-bottom: 4px;">WEEKLY LEADERBOARD</div>
+        <div id="wl-week" style="font-size: 11px; color: #666; margin-bottom: 12px;">—</div>
+        <div id="wl-table" style="font-size: 12px;">
+          <div style="color:#555;text-align:center;padding:12px 0;">Loading…</div>
+        </div>
+        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #1f1f1f; font-size: 10px; color: #666; line-height: 1.6;">
+          <div style="color:#888;margin-bottom:4px;">REWARDS</div>
+          <div>Rank 1: 1 zkLTC + 2,000 pts</div>
+          <div>Rank 2: 0.5 zkLTC + 1,000 pts</div>
+          <div>Rank 3: 0.3 zkLTC + 500 pts</div>
+          <div>Rank 4-10: 0.1 zkLTC + 200 pts</div>
+          <div>Rank 11-20: 0.001 zkLTC + 100 pts</div>
+          <div style="margin-top:6px;color:#555;">Top 20 rewarded every Sunday midnight IST</div>
+        </div>
+      </div>
     </div>
 
     <!-- ── GAME OVER SCREEN ── -->
@@ -2080,6 +2113,61 @@ const LitDeX = (() => {
 
   init();
   return { connectWallet, loadStats, startSession, endSession };
+})();
+</script>
+<script>
+(() => {
+  'use strict';
+  const ENDPOINT = 'https://game.test-hub.xyz/game/mathslash/weekly-leaderboard';
+  const tableEl = document.getElementById('wl-table');
+  const weekEl = document.getElementById('wl-week');
+  if (!tableEl) return;
+
+  function maskWallet(w) {
+    if (!w || typeof w !== 'string') return '—';
+    if (w.length <= 10) return w;
+    return w.slice(0, 6) + '…' + w.slice(-4);
+  }
+
+  function rankColor(rank) {
+    if (rank === 1) return { color: '#fff', weight: '700' };
+    if (rank === 2 || rank === 3) return { color: '#888', weight: '600' };
+    return { color: '#555', weight: '400' };
+  }
+
+  function render(week, rows) {
+    if (week) weekEl.textContent = String(week);
+    if (!rows || rows.length === 0) {
+      tableEl.innerHTML = '<div style="color:#555;text-align:center;padding:16px 0;">No games played yet this week</div>';
+      return;
+    }
+    let html = '<div style="display:grid;grid-template-columns:32px 1fr 70px;gap:6px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:1px;padding-bottom:6px;border-bottom:1px solid #1f1f1f;margin-bottom:6px;">'
+      + '<div>#</div><div>Wallet</div><div style="text-align:right;">Score</div></div>';
+    rows.forEach((r) => {
+      const rank = r.rank;
+      const c = rankColor(rank);
+      html += '<div style="display:grid;grid-template-columns:32px 1fr 70px;gap:6px;padding:4px 0;color:' + c.color + ';font-weight:' + c.weight + ';">'
+        + '<div>' + rank + '</div>'
+        + '<div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;">' + maskWallet(r.wallet) + '</div>'
+        + '<div style="text-align:right;">' + (r.totalScore ?? 0) + '</div>'
+        + '</div>';
+    });
+    tableEl.innerHTML = html;
+  }
+
+  async function load() {
+    try {
+      const res = await fetch(ENDPOINT, { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      render(data.week, data.leaderboard || []);
+    } catch (e) {
+      tableEl.innerHTML = '<div style="color:#555;text-align:center;padding:12px 0;">Unable to load</div>';
+    }
+  }
+
+  load();
+  setInterval(load, 60000);
 })();
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"00657c1074734fedabd0787315c9dc60","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
