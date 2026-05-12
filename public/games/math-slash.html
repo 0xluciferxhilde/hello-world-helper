@@ -493,6 +493,142 @@
     70% { opacity: 1; }
     100% { transform: translateY(-30px) scale(0.8); opacity: 0; }
   }
+
+  /* ─────────── LITDEX THEME OVERRIDES ─────────── */
+  html, body { background: #000 !important; font-family: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, monospace; }
+
+  /* Target banner */
+  .target-area {
+    background: linear-gradient(180deg, #0a0a0a 0%, rgba(10,10,10,0.85) 80%, transparent 100%) !important;
+    border: 1px solid #1a1a1a !important;
+    border-top: none !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+  .target-label { color: #555 !important; }
+  .target-number {
+    color: #fff !important;
+    text-shadow: none !important;
+    animation: none !important;
+  }
+  @keyframes numberPulse { 0%,100%{} 50%{} }
+  /* keep correct/wrong flash for gameplay feedback */
+
+  /* Tutorial */
+  .tutorial-overlay { background: rgba(0,0,0,0.92) !important; }
+  .tut-target-demo { color: #555 !important; }
+  .tut-target-num { color: #fff !important; text-shadow: none !important; }
+  .tut-fruit-circle.good { background: #0a0a0a !important; border: 1px solid #2a6a3a !important; box-shadow: none !important; }
+  .tut-fruit-circle.bad  { background: #0a0a0a !important; border: 1px solid #6a2a2a !important; box-shadow: none !important; }
+  .tut-hint { color: #555 !important; }
+  .tut-btn {
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    border-radius: 8px !important;
+    font-family: ui-monospace, monospace !important;
+    letter-spacing: 3px !important;
+  }
+
+  /* HUD */
+  .hud-score { color: #fff !important; text-shadow: none !important; }
+  .hud-streak { color: #fff !important; text-shadow: none !important; }
+  .hud-level { color: #555 !important; }
+  .hud-best { color: #555 !important; text-shadow: none !important; }
+  .heart { /* keep red */ }
+  .progress-dot { background: #1a1a1a !important; }
+  .progress-dot.filled { background: #fff !important; box-shadow: none !important; }
+  .progress-dot.current { background: #fff !important; box-shadow: none !important; }
+
+  /* Screens */
+  #start-screen, #gameover-screen, #wallet-screen { background: #000 !important; }
+
+  /* Keep MATH SLASH title font, restyle color */
+  .game-title { color: #fff !important; text-shadow: none !important; animation: none !important; }
+  .game-subtitle { color: #555 !important; font-family: ui-monospace, monospace !important; }
+  .game-desc { color: #555 !important; font-family: ui-monospace, monospace !important; }
+
+  .start-btn {
+    background: #fff !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    border-radius: 10px !important;
+    font-family: ui-monospace, monospace !important;
+    letter-spacing: 3px !important;
+    border: 1px solid #fff !important;
+  }
+  .start-btn:hover { transform: scale(1.02) !important; box-shadow: none !important; }
+
+  .exit-btn {
+    font-size: 28px;
+    color: #fff !important;
+    background: #000 !important;
+    border: 1px solid #fff !important;
+    padding: 14px 52px;
+    border-radius: 10px;
+    cursor: pointer;
+    letter-spacing: 3px;
+    font-family: ui-monospace, monospace;
+    margin-left: 12px;
+    transition: transform 0.15s;
+  }
+  .exit-btn:hover { transform: scale(1.02); }
+  .exit-btn:active { transform: scale(0.97); }
+  .go-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  /* Wallet info card */
+  #wallet-card {
+    background: #0a0a0a !important;
+    border: 1px solid #1a1a1a !important;
+    box-shadow: none !important;
+  }
+  #wallet-card div { font-family: ui-monospace, monospace !important; }
+  #wallet-card [style*="color:rgba(150,200,255"] { color: #555 !important; }
+  #wallet-addr { color: #fff !important; }
+  #nft-tier-label, #game-cost-label, #games-left-label, #zk-earned-label {
+    color: #fff !important;
+    background: #000;
+    border: 1px solid #1f1f1f;
+    border-radius: 6px;
+    padding: 2px 8px;
+    display: inline-block;
+    font-family: ui-monospace, monospace !important;
+    font-size: 14px !important;
+    letter-spacing: 2px;
+  }
+
+  /* Game over */
+  .go-title { color: #fff !important; text-shadow: none !important; }
+  .go-score { color: #fff !important; text-shadow: none !important; font-family: ui-monospace, monospace !important; }
+  .go-stats { color: #555 !important; font-family: ui-monospace, monospace !important; }
+  .go-best { color: #555 !important; font-family: ui-monospace, monospace !important; }
+
+  /* Reward card */
+  #reward-card {
+    background: #0a0a0a !important;
+    border: 1px solid #1f1f1f !important;
+  }
+  #reward-card > div:first-child { color: #555 !important; font-family: ui-monospace, monospace !important; }
+  #go-zk-earned { color: #fff !important; text-shadow: none !important; font-family: ui-monospace, monospace !important; }
+  #go-games-left { color: #555 !important; font-family: ui-monospace, monospace !important; }
+  #go-tx-hash {
+    color: #fff !important;
+    font-family: ui-monospace, "JetBrains Mono", monospace !important;
+    font-size: 11px !important;
+  }
+  #go-tx-hash a { color: #fff !important; text-decoration: underline !important; }
+
+  /* HUD bottom info */
+  #litdex-hud div { font-family: ui-monospace, monospace !important; }
+  #litdex-hud [style*="color:rgba(150,200,255"],
+  #litdex-hud [style*="color:rgba(200,150,255"] { color: #555 !important; }
+  #hud-games-left, #hud-zk-today { color: #fff !important; font-family: ui-monospace, monospace !important; }
+
+  /* Score popups: keep green/red gameplay feedback */
+  .score-popup.streak { color: #fff !important; text-shadow: none !important; }
+
+  /* Errors */
+  #wallet-error, #start-error, #go-error { color: #aa6655 !important; font-family: ui-monospace, monospace !important; }
 </style>
 </head>
 <body>
