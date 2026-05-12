@@ -63,7 +63,7 @@ export default function SwapCard({
   const [isSwapping, setIsSwapping] = React.useState(false)
   const [subMode, setSubMode] = React.useState<"add" | "remove">("add")
   const [activeRouter, setActiveRouter] = React.useState<string>("")
-  const [activeRouterKey, setActiveRouterKey] = React.useState<any>("liteswap")
+  const [activeRouterKey, setActiveRouterKey] = React.useState<RouterKey>("liteswap")
   const [activePath, setActivePath] = React.useState<string[]>([])
   const [lpPositions, setLpPositions] = React.useState<LPPosition[]>([])
   const [loadingPositions, setLoadingPositions] = React.useState(false)
