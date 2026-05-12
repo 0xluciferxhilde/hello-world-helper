@@ -4210,7 +4210,7 @@ export default function App() {
 
         {!isMathSlashPlaying && (
           <>
-            <div className="hidden md:flex fixed top-3 right-3 sm:top-4 sm:right-6 z-[60] flex-col items-end" style={{ transform: 'scale(1.0)', transformOrigin: 'top right' }}>
+            <div className="hidden md:flex fixed top-3 right-3 sm:top-4 sm:right-6 z-[10000] flex-col items-end pointer-events-auto" style={{ transform: 'scale(1.0)', transformOrigin: 'top right' }}>
               <ConnectButton.Custom>
                 {({ account, chain, openConnectModal, openAccountModal, mounted }) => {
                   const connected = mounted && account && chain;
